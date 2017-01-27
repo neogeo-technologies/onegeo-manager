@@ -45,7 +45,7 @@ class PdfSource(GenericSource):
         name = 'foobar'
         t = PdfType(name)
         for p in self._iter_pdf_path():
-            pdf = PdfFileReader(open(p, 'rb'))
+            pdf = PdfFileReader(open(p.as_posix(), 'rb'))
             for k, _ in pdf.getDocumentInfo().items():
                 if k not in t.iter_column_name():
                     t.add_column(k)
