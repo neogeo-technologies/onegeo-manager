@@ -73,6 +73,17 @@ class PropertyColumn:
     def pattern(self):
         return self.__pattern
 
+    def all(self):
+        return {'name': self.name,
+                'occurs': self.occurs,
+                'type': self.column_type,
+                'alias': self.alias,
+                'enabled': self.enabled,
+                'searchable': self.searchable,
+                'weight': self.weight,
+                'fields': self.fields,
+                'pattern': self.pattern}
+
     def set_column_type(self, val):
         # TODO: Vérifier si 'type' est une valeur autorisée
         self.__c_type = val
