@@ -28,7 +28,8 @@ class PropertyColumn:
         self.set_alias(alias)
         self.is_enabled(enabled)
         self.is_searchable(searchable)
-        self.set_weight(weight)
+        if weight:
+            self.set_weight(weight)
 
         self.__pattern = None
         if pattern:
