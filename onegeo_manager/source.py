@@ -41,15 +41,24 @@ class PdfSource(GenericSource):
     def _iter_pdf_path(self):
         return iter(list(self.__p.glob('**/*.pdf')))
 
+    def _iter_dir_path(self):
+        subdirs = [sub for sub in self.__p.iterdir() if sub.is_dir()]
+        if subdirs:
+            return iter(subdirs)
+        return iter([self.__p])
+
     def get_types(self):
-        name = 'foobar'
-        t = PdfType(name)
-        for p in self._iter_pdf_path():
-            pdf = PdfFileReader(open(p.as_posix(), 'rb'))
-            for k, _ in pdf.getDocumentInfo().items():
-                if k not in t.iter_column_name():
-                    t.add_column(k)
-        return [t]
+
+        arr = []
+        for d in self._iter_dir_path():
+            t = PdfType(d.name)
+            for p in self._iter_pdf_path():
+                pdf = PdfFileReader(open(p.as_posix(), 'rb'))
+                for k, _ in pdf.getDocumentInfo().items():
+                    if k not in t.iter_column_name():
+                        t.add_column(k)
+            arr.append(t)
+        return arr
 
     def get_collection(self):
         for f in self._iter_pdf_path():
