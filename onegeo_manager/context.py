@@ -163,6 +163,11 @@ class GenericContext(metaclass=ABCMeta):
             if p.name == name:
                 return p
 
+    def set_property(self, property):
+        if not property.__class__.__qualname__ == 'PropertyColumn':
+            raise TypeError('Argument should be an instance of \'PropertyColumn\'.')
+        self.__properties.append(property)
+
     def iter_tags(self):
         return iter(self.__tags)
 
@@ -208,7 +213,7 @@ class PdfContext(GenericContext):
             if c['name'] == 'file' and c['type'] == 'binary':
                 continue
             properties = PropertyColumn(c['name'], column_type=c['type'], occurs=c['occurs'])
-            self.__properties.append(properties)
+            self.set_property(properties)
 
     def generate_elastic_mapping(self):
 
