@@ -46,11 +46,11 @@ class XMLtoObj:
 
     def start(self, tag, attrib):
 
-        def parse_attribute(d, tag='@'):
+        def parse_attribute(d, prefix='@'):
             r = {}
             for k, v in d.items():
                 k = k.split('}')[-1]
-                r['{0}{1}'.format(tag, k)] = v
+                r['{0}{1}'.format(prefix, k)] = v
             return r
 
         def recur_n_insert(tree, depth=0):
@@ -84,7 +84,7 @@ class XMLtoObj:
 
         self.__attr = {}
         if attrib:
-            self.__attr = parse_attribute(attrib, tag=self.attrib_tag)
+            self.__attr = parse_attribute(attrib, prefix=self.attrib_tag)
 
         recur_n_insert(self.__obj)
 

@@ -114,11 +114,11 @@ class WfsSource(GenericSource):
         """
         features = []
 
-        def find_ft_meta(typename):
+        def find_ft_meta(ft_name):
             for f in iter(self.capabilities['FeatureTypeList']['FeatureType']):
-                if f['Name'].split(':')[-1] == typename:
+                if f['Name'].split(':')[-1] == ft_name:
                     return f
-            raise ValueError('{0} not found.'.format(typename))
+            raise ValueError('{0} not found.'.format(ft_name))
 
         capacity = find_ft_meta(typename)
 

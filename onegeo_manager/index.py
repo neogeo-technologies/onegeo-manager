@@ -2,21 +2,20 @@ __all__ = ['Index']
 
 
 class Index:
-
-    __name = 'temporary'
-    __analyzer = None
+    __name = None
+    __index_analyzer = None
     __search_analyzer = None
 
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.__name = name
 
     @property
     def name(self):
         return self.__name
 
     @property
-    def analyzer(self):
-        return self.__analyzer
+    def index_analyzer(self):
+        return self.__index_analyzer
 
     @property
     def search_analyzer(self):
@@ -25,23 +24,8 @@ class Index:
     def set_alias(self, val):
         self.__name = val
 
-    def create_analyzer(self, _):
-        # TODO
-        pass
+    def set_index_analyzer(self, obj):
+        self.__index_analyzer = obj
 
-    def create_search_analyzer(self, _):
-        # TODO
-        pass
-
-    def __create_analyzer(self, search=False):
-        # TODO
-        pass
-
-    def set_analyzer(self, val):
-        # TODO Vérifier si existe
-        self.__analyzer = val
-
-    def set_search_analyzer(self, val):
-        # TODO Vérifier si existe
-
-        self.__search_analyzer = val
+    def set_search_analyzer(self, obj):
+        self.__search_analyzer = obj
