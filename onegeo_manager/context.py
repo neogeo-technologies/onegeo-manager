@@ -16,12 +16,12 @@ class PropertyColumn:
     __searchable = True
     __weight = None
     __pattern = None
-    __index_analyzer = None
+    __analyzer = None
     __search_analyzer = None
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  enabled=True, searchable=True, weight=None, pattern=None,
-                 index_analyzer=None, search_analyzer=None):
+                 analyzer=None, search_analyzer=None):
 
         self.__name = name
 
@@ -34,7 +34,7 @@ class PropertyColumn:
             self.set_weight(weight)
         if pattern:
             self.set_pattern(pattern)
-        self.set_index_analyzer(index_analyzer)
+        self.set_analyzer(analyzer)
         self.set_search_analyzer(search_analyzer)
 
     @property
@@ -70,8 +70,8 @@ class PropertyColumn:
         return self.__pattern
 
     @property
-    def index_analyzer(self):
-        return self.__index_analyzer
+    def analyzer(self):
+        return self.__analyzer
 
     @property
     def search_analyzer(self):
@@ -108,8 +108,8 @@ class PropertyColumn:
                 'Pattern attribute does not exist in this context.')
         self.__pattern = val
 
-    def set_index_analyzer(self, val):
-        self.__index_analyzer = val
+    def set_analyzer(self, val):
+        self.__analyzer = val
 
     def set_search_analyzer(self, val):
         self.__search_analyzer = val
@@ -123,7 +123,7 @@ class PropertyColumn:
                 'searchable': self.searchable,
                 'weight': self.weight,
                 'pattern': self.pattern,
-                'index_analyzer': self.index_analyzer,
+                'analyzer': self.analyzer,
                 'search_analyzer': self.search_analyzer}
 
 
@@ -223,31 +223,17 @@ class PdfContext(GenericContext):
         self.set_elastic_type(elastic_type)
 
         for c in self.elastic_type.iter_columns():
-            if c['name'] == 'file' and c['type'] == 'binary':
-                continue
             properties = PropertyColumn(c['name'], column_type=c['type'], occurs=c['occurs'])
             self.set_property(properties)
 
     def generate_elastic_mapping(self):
 
-        analyzer = self.elastic_index.index_analyzer
-        search_analyzer = self.elastic_index.search_analyzer or analyzer
+        analyzer = self.elastic_index.analyzer
+        search_analyzer = self.elastic_index.search_analyzer
 
         type_name = self.elastic_type.name
 
-        mapping = {type_name: {
-            'properties': {
-                'attachment.data': {
-                    'type': 'text',
-                    'analyzer': analyzer,
-                    # 'fields': {
-                    #     'content': {
-                    #         'store': True,
-                    #         'analyzer': analyzer,
-                    #         'search_analyzer': search_analyzer,
-                    #         'term_vector': 'with_positions_offsets'}}
-                },
-            }}}
+        mapping = {type_name: {'properties': {}}}
 
         if self.tags:
             mapping[type_name]['properties'].update({
@@ -284,7 +270,7 @@ class PdfContext(GenericContext):
             elif p.column_type == 'text':
 
                 props[p.name] = {
-                    'analyzer': p.index_analyzer,
+                    'analyzer': p.analyzer,
                     'boost': p.weight,
                     # 'eager_global_ordinals'
                     # 'fielddata'
@@ -303,71 +289,82 @@ class PdfContext(GenericContext):
 
             elif p.column_type == 'keyword':
 
-                props[p.name] = {
-                    'analyzer': p.index_analyzer,
-                    'boost': p.weight,
-                    # 'doc_value'
-                    # 'eager_global_ordinals'
-                    # 'fields'
-                    # 'ignore_above'
-                    # 'include_in_all'
-                    'index': True,
-                    'index_options': 'docs',
-                    'norms': True,
-                    # 'null_value'
-                    'store': False,
-                    'search_analyzer': p.search_analyzer,
-                    'similarity': 'classic',
-                    'term_vector': 'yes'}
+                props.update({p.name: {
+                                'analyzer': p.analyzer,
+                                'boost': p.weight,
+                                # 'doc_value'
+                                # 'eager_global_ordinals'
+                                # 'fields'
+                                # 'ignore_above'
+                                # 'include_in_all'
+                                'index': True,
+                                'index_options': 'docs',
+                                'norms': True,
+                                # 'null_value'
+                                'store': False,
+                                'search_analyzer': p.search_analyzer,
+                                'similarity': 'classic',
+                                'term_vector': 'yes'}})
 
             elif p.column_type in ('byte', 'double', 'double_range',
                             'float', 'float_range', 'half_float',
                             'integer', 'integer_range', 'long',
                             'long_range', 'scaled_float', 'short'):
 
-                props[p.name] = {
-                    'coerce': True,
-                    'boost': p.weight,
-                    'doc_values': True,
-                    'ignore_malformed': True,
-                    # 'include_in_all'
-                    'index': True,
-                    # 'null_value'
-                    'store': False}
+                props.update({p.name: {
+                                'coerce': True,
+                                'boost': p.weight,
+                                'doc_values': True,
+                                'ignore_malformed': True,
+                                # 'include_in_all'
+                                'index': True,
+                                # 'null_value'
+                                'store': False}})
 
                 # if p.type == 'scaled_float':
                 #     props[p.name]['scaling_factor'] = 10
 
             elif p.column_type in ('date', 'date_range'):
 
-                props[p.name] = {
-                    'boost': p.weight,
-                     'doc_values': True,
-                     'format': p.pattern,
-                     # 'locale'
-                     'ignore_malformed': True,
-                     # 'include_in_all'
-                     'index': True,
-                     # 'null_value'
-                     'store': False}
+                props.update({p.name: {
+                                'boost': p.weight,
+                                'doc_values': True,
+                                'format': p.pattern,
+                                # 'locale'
+                                'ignore_malformed': True,
+                                # 'include_in_all'
+                                'index': True,
+                                # 'null_value'
+                                'store': False}})
 
             elif p.column_type == 'boolean':
 
-                props[p.name] = {
-                    'boost': p.weight,
-                    'doc_values': True,
-                    'index': True,
-                    # 'null_value'
-                    'store': False}
+                props.update({p.name: {
+                                'boost': p.weight,
+                                'doc_values': True,
+                                'index': True,
+                                # 'null_value'
+                                'store': False}})
 
             elif p.column_type == 'binary':
 
-                props[p.name] = {
-                    'doc_values': True,
-                    'store': False}
+                props.update({p.name: {
+                                'doc_values': True,
+                                'store': False}})
+
+            elif p.column_type == 'pdf':
+
+                mapping[type_name]['attachment.{0}'.format(p.name)] = {
+                        'type': 'text',
+                        'fields': {
+                            'content': {
+                                'analyzer': p.analyzer,
+                                'search_analyzer': p.search_analyzer,
+                                'term_vector': 'with_positions_offsets'}}}
 
         if props:
-            mapping[type_name]['properties'].update({'meta': {'properties': props}})
+            mapping[type_name]['properties'].update({
+                                        'meta': {'properties': props}})
 
         return clean_my_obj(mapping)
 

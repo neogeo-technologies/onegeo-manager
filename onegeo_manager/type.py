@@ -6,10 +6,10 @@ __all__ = ['PdfType', 'FeatureType']
 
 class GenericType(metaclass=ABCMeta):
 
-    COLUMN_TYPE = ['boolean', 'byte', 'date', 'date_range', 'double',
-                   'double_range', 'float', 'float_range', 'half_float',
-                   'integer', 'integer_range', 'ip', 'keyword', 'long',
-                   'long_range', 'scaled_float', 'short', 'text']
+    COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
+                   'double', 'double_range', 'float', 'float_range',
+                   'half_float', 'integer', 'integer_range', 'ip', 'keyword',
+                   'long', 'long_range', 'scaled_float', 'short', 'text']
 
     def __init__(self, name):
         self.__name = name
@@ -87,10 +87,10 @@ class PdfType(GenericType):
 
     def __init__(self, name):
         super().__init__(name)
-        self.add_column('file', column_type='binary', occurs=(1, 1))
+        self.add_column('file', column_type='pdf', occurs=(1, 1))
 
     def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['binary']
+        return val in self.COLUMN_TYPE + ['pdf']
 
 
 class FeatureType(GenericType):
