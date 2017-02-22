@@ -12,7 +12,7 @@ class PropertyColumn:
     __alias = None
     __column_type = None
     __occurs = None
-    __enabled = True
+    __rejected = False
     __searchable = True
     __weight = None
     __pattern = None
@@ -20,7 +20,7 @@ class PropertyColumn:
     __search_analyzer = None
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
-                 enabled=True, searchable=True, weight=None, pattern=None,
+                 rejected=False, searchable=True, weight=None, pattern=None,
                  analyzer=None, search_analyzer=None):
 
         self.__name = name
@@ -28,7 +28,7 @@ class PropertyColumn:
         self.set_alias(alias)
         self.set_column_type(column_type or 'text')
         self.set_occurs(occurs)
-        self.is_enabled(enabled)
+        self.is_rejected(rejected)
         self.is_searchable(searchable)
         if weight:
             self.set_weight(weight)
@@ -54,8 +54,8 @@ class PropertyColumn:
         return self.__occurs
 
     @property
-    def enabled(self):
-        return self.__enabled
+    def rejected(self):
+        return self.__rejected
 
     @property
     def searchable(self):
@@ -87,10 +87,10 @@ class PropertyColumn:
     def set_occurs(self, val):
         self.__occurs = val
 
-    def is_enabled(self, val):
+    def is_rejected(self, val):
         if not type(val) is bool:
             raise TypeError('Input should be a boolean.')
-        self.__enabled = val
+        self.__rejected = val
 
     def is_searchable(self, val):
         if not type(val) is bool:
@@ -119,7 +119,7 @@ class PropertyColumn:
                 'alias': self.alias,
                 'type': self.column_type,
                 'occurs': self.occurs,
-                'enabled': self.enabled,
+                'rejected': self.rejected,
                 'searchable': self.searchable,
                 'weight': self.weight,
                 'pattern': self.pattern,
@@ -256,7 +256,7 @@ class PdfContext(GenericContext):
 
         props = {}
         for p in self.iter_properties():
-            if not p.enabled:
+            if p.rejected:
                 continue
 
             props[p.name] = {'type': p.column_type}
