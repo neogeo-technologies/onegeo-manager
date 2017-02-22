@@ -6,8 +6,10 @@ __all__ = ['PdfType', 'FeatureType']
 
 class GenericType(metaclass=ABCMeta):
 
-    COLUMN_TYPE = ['boolean', 'byte', 'date', 'double',
-                   'float', 'integer', 'long', 'short', 'string']
+    COLUMN_TYPE = ['boolean', 'byte', 'date', 'date_range', 'double',
+                   'double_range', 'float', 'float_range', 'half_float',
+                   'integer', 'integer_range', 'ip', 'keyword', 'long',
+                   'long_range', 'scaled_float', 'short', 'text']
 
     def __init__(self, name):
         self.__name = name
