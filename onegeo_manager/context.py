@@ -9,21 +9,21 @@ __all__ = ['PropertyColumn', 'PdfContext', 'FeatureContext']
 
 class PropertyColumn:
 
-    __alias = None
-    __column_type = None
-    __occurs = None
-    __rejected = False
-    __searchable = True
-    __weight = None
-    __pattern = None
-    __analyzer = None
-    __search_analyzer = None
-
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
                  analyzer=None, search_analyzer=None):
 
         self.__name = name
+
+        self.__alias = None
+        self.__column_type = None
+        self.__occurs = None
+        self.__rejected = False
+        self.__searchable = True
+        self.__weight = None
+        self.__pattern = None
+        self.__analyzer = None
+        self.__search_analyzer = None
 
         self.set_alias(alias)
         self.set_column_type(column_type or 'text')
@@ -99,7 +99,7 @@ class PropertyColumn:
 
     def set_weight(self, val):
         if not type(val) in [float, int]:
-            raise TypeError('Input should be a \'float\' or `int\'.')
+            raise TypeError('Input should be a float or int.')
         self.__weight = val
 
     def set_pattern(self, val):
@@ -129,23 +129,24 @@ class PropertyColumn:
 
 class GenericContext(metaclass=ABCMeta):
 
-    __tags = []
-    __properties = []
-    # __preview = []
-    __elastic_index = None
-    __elastic_type = None
-
     def __init__(self, elastic_index, elastic_type):
 
+        self.__tags = []
+        # self.__preview = []
+        self.__elastic_index = None
+        self.__elastic_type = None
+        self.__properties = []
+
         if not elastic_index.__class__.__qualname__ == 'Index':
-            raise TypeError('Argument should be an instance of \'Index\'. ')
+            raise TypeError("Argument should be an instance of 'Index'.")
 
-        self.set_elastic_index(elastic_index)
         self.set_elastic_type(elastic_type)
+        self.set_elastic_index(elastic_index)
 
-        for c in self.__elastic_type.iter_columns():
-            properties = PropertyColumn(c['name'], column_type=c['type'], occurs=c['occurs'])
-            self.__properties.append(properties)
+        for c in self.elastic_type.iter_columns():
+            self.__properties.append(PropertyColumn(c['name'],
+                                                    column_type=c['type'],
+                                                    occurs=c['occurs']))
 
     @property
     def elastic_type(self):
@@ -165,10 +166,10 @@ class GenericContext(metaclass=ABCMeta):
     def set_elastic_index(self, elastic_index):
         self.__elastic_index = elastic_index
 
-    def set_property(self, property):
-        if not property.__class__.__qualname__ == 'PropertyColumn':
-            raise TypeError('Argument should be an instance of \'PropertyColumn\'.')
-        self.__properties.append(property)
+    def set_property(self, p):
+        if not p.__class__.__qualname__ == 'PropertyColumn':
+            raise TypeError("Argument should be an instance of 'PropertyColumn'.")
+        self.__properties.append(p)
 
     def iter_properties(self):
         return iter(self.__properties)
@@ -205,7 +206,7 @@ class GenericContext(metaclass=ABCMeta):
     @abstractmethod
     def generate_elastic_mapping(self):
         raise NotImplementedError('This is an abstract method. '
-                                  'You can\'t do anything with it.')
+                                  "You can't do anything with it.")
 
 
 class PdfContext(GenericContext):
@@ -213,18 +214,9 @@ class PdfContext(GenericContext):
     def __init__(self, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'PdfType':
-            raise TypeError('Argument should be an instance of \'PdfType\'.')
+            raise TypeError("Argument should be an instance of 'PdfType'.")
 
-        self.set_elastic_index(elastic_index)
-
-        if not elastic_index.__class__.__qualname__ == 'Index':
-            raise TypeError('Argument should be an instance of \'Index\'. ')
-
-        self.set_elastic_type(elastic_type)
-
-        for c in self.elastic_type.iter_columns():
-            properties = PropertyColumn(c['name'], column_type=c['type'], occurs=c['occurs'])
-            self.set_property(properties)
+        super().__init__(elastic_index, elastic_type)
 
     def generate_elastic_mapping(self):
 
@@ -374,7 +366,7 @@ class FeatureContext(GenericContext):
     def __init__(self, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'FeatureType':
-            raise TypeError('Argument should be an instance of \'FeatureType\'. ')
+            raise TypeError("Argument should be an instance of 'FeatureType'.")
 
         super().__init__(elastic_index, elastic_type)
 

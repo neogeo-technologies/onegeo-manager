@@ -2,12 +2,12 @@ __all__ = ['Index']
 
 
 class Index:
-    __name = None
-    __analyzer = None
-    __search_analyzer = None
 
     def __init__(self, name):
+
         self.__name = name
+        self.__analyzer = None
+        self.__search_analyzer = None
 
     @property
     def name(self):
