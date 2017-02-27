@@ -14,10 +14,22 @@ __all__ = ['PdfSource', 'WfsSource']
 
 class GenericSource(metaclass=ABCMeta):
 
+    MODE = ('pdf', 'wfs')
+
     def __init__(self, uri, name, mode):
         self.uri = uri
+
+        s = search('^[a-z0-9_]{3,30}$', name)
+        if not s:
+            raise ValueError("Malformed value fo 'name'.")  # TODO
         self.name = name
+
+        if not self.authorized_mode(mode):
+            raise ValueError("Mode value '{0}' not authorized.".format(mode))
         self.mode = mode
+
+    def authorized_mode(self, val):
+        return val in self.MODE
 
     @abstractmethod
     def get_types(self, *args, **kwargs):
@@ -32,13 +44,13 @@ class GenericSource(metaclass=ABCMeta):
 
 class PdfSource(GenericSource):
 
-    def __init__(self, path):
+    def __init__(self, path, name, mode):
 
         self.__p = Path(path.startswith('file://') and path[7:] or path)
         if not self.__p.exists():
             raise ConnectionError('The given path does not exist.')
 
-        super().__init__(self.__p.as_uri())
+        super().__init__(self.__p.as_uri(), name, mode)
 
     def _iter_pdf_path(self):
         return iter(list(self.__p.glob('**/*.pdf')))
@@ -71,8 +83,8 @@ class PdfSource(GenericSource):
 
 class WfsSource(GenericSource):
 
-    def __init__(self, url):
-        super().__init__(url)
+    def __init__(self, url, name, mode):
+        super().__init__(url, name, mode)
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
