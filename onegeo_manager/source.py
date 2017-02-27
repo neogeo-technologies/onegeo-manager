@@ -14,8 +14,10 @@ __all__ = ['PdfSource', 'WfsSource']
 
 class GenericSource(metaclass=ABCMeta):
 
-    def __init__(self, uri):
+    def __init__(self, uri, name, mode):
         self.uri = uri
+        self.name = name
+        self.mode = mode
 
     @abstractmethod
     def get_types(self, *args, **kwargs):
