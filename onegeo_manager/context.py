@@ -274,7 +274,7 @@ class PdfContext(GenericContext):
                     # 'fields'
                     # 'include_in_all'
                     'index': True,
-                    'index_options': 'docs',
+                    'index_options': 'offsets',
                     'norms': True,
                     'position_increment_gap': 100,
                     'store': False,
