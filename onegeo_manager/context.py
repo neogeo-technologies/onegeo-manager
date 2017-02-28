@@ -244,7 +244,8 @@ class PdfContext(GenericContext):
                     'store': False,
                     'search_analyzer': search_analyzer,
                     'similarity': 'classic',
-                    'term_vector': 'yes'}})
+                    'term_vector': 'yes',
+                    'type': 'keyword'}})
 
         props = {}
         for p in self.iter_properties():
@@ -277,7 +278,8 @@ class PdfContext(GenericContext):
                     'search_analyzer': p.search_analyzer,
                     # 'search_quote_analyzer'
                     'similarity': 'classic',
-                    'term_vector': 'yes'}
+                    'term_vector': 'yes',
+                    'type': p.column_type}
 
             elif p.column_type == 'keyword':
 
@@ -296,7 +298,8 @@ class PdfContext(GenericContext):
                                 'store': False,
                                 'search_analyzer': p.search_analyzer,
                                 'similarity': 'classic',
-                                'term_vector': 'yes'}})
+                                'term_vector': 'yes',
+                                'type': p.column_type}})
 
             elif p.column_type in ('byte', 'double', 'double_range',
                             'float', 'float_range', 'half_float',
@@ -311,7 +314,8 @@ class PdfContext(GenericContext):
                                 # 'include_in_all'
                                 'index': True,
                                 # 'null_value'
-                                'store': False}})
+                                'store': False,
+                                'type': p.column_type}})
 
                 # if p.type == 'scaled_float':
                 #     props[p.name]['scaling_factor'] = 10
@@ -327,7 +331,8 @@ class PdfContext(GenericContext):
                                 # 'include_in_all'
                                 'index': True,
                                 # 'null_value'
-                                'store': False}})
+                                'store': False,
+                                'type': p.column_type}})
 
             elif p.column_type == 'boolean':
 
@@ -336,13 +341,15 @@ class PdfContext(GenericContext):
                                 'doc_values': True,
                                 'index': True,
                                 # 'null_value'
-                                'store': False}})
+                                'store': False,
+                                'type': p.column_type}})
 
             elif p.column_type == 'binary':
 
                 props.update({p.name: {
                                 'doc_values': True,
-                                'store': False}})
+                                'store': False,
+                                'type': p.column_type}})
 
             elif p.column_type == 'pdf':
 
@@ -352,7 +359,8 @@ class PdfContext(GenericContext):
                             'content': {
                                 'analyzer': p.analyzer,
                                 'search_analyzer': p.search_analyzer,
-                                'term_vector': 'with_positions_offsets'}}}
+                                'term_vector': 'with_positions_offsets',
+                                'type':p.column_type}}}
 
         if props:
             mapping[type_name]['properties'].update({
