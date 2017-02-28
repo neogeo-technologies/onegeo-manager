@@ -353,14 +353,8 @@ class PdfContext(GenericContext):
 
             elif p.column_type == 'pdf':
 
-                mapping[type_name]['attachment.{0}'.format(p.name)] = {
-                        'type': 'text',
-                        'fields': {
-                            'content': {
-                                'analyzer': p.analyzer,
-                                'search_analyzer': p.search_analyzer,
-                                'term_vector': 'with_positions_offsets',
-                                'type':p.column_type}}}
+                mapping[type_name]['attachment.data'] = {
+                                    'type': 'text', 'analyzer': p.analyzer}
 
         if props:
             mapping[type_name]['properties'].update({
