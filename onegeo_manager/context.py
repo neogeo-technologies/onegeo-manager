@@ -353,8 +353,10 @@ class PdfContext(GenericContext):
 
             elif p.column_type == 'pdf':
 
-                mapping[type_name]['attachment.data'] = {
-                                    'type': 'text', 'analyzer': p.analyzer}
+                mapping[type_name]['properties'].update({
+                                            'attachment.data': {
+                                                'type': 'text',
+                                                'analyzer': p.analyzer}})
 
         if props:
             mapping[type_name]['properties'].update({
