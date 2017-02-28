@@ -76,9 +76,9 @@ class PdfSource(GenericSource):
 
     def get_collection(self):
         for f in self._iter_pdf_path():
-            yield {'data': b64encode(open(f, 'rb').read()),
+            yield {'data': b64encode(open(f.as_posix(), 'rb').read()),
                    'meta': dict(PdfFileReader(
-                                    open(f, 'rb')).getDocumentInfo().items())}
+                                     open(f.as_posix(), 'rb')).getDocumentInfo().items())}
 
 
 class WfsSource(GenericSource):
