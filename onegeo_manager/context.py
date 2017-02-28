@@ -227,32 +227,31 @@ class PdfContext(GenericContext):
 
         mapping = {type_name: {'properties': {}}}
 
-        if self.tags:
-            mapping[type_name]['properties'].update({
-                'tags': {
-                    'analyzer': analyzer,
-                    'boost': 1.0,
-                    # 'doc_value'
-                    # 'eager_global_ordinals'
-                    # 'fields'
-                    # 'ignore_above'
-                    # 'include_in_all'
-                    'index': True,
-                    'index_options': 'docs',
-                    'norms': True,
-                    # 'null_value'
-                    'store': False,
-                    'search_analyzer': search_analyzer,
-                    'similarity': 'classic',
-                    'term_vector': 'yes',
-                    'type': 'keyword'}})
+        # if self.tags:
+        #     mapping[type_name]['properties'].update({
+        #         'tags': {
+        #             'analyzer': analyzer,
+        #             'boost': 1.0,
+        #             # 'doc_value'
+        #             # 'eager_global_ordinals'
+        #             # 'fields'
+        #             # 'ignore_above'
+        #             # 'include_in_all'
+        #             'index': True,
+        #             'index_options': 'docs',
+        #             'norms': True,
+        #             # 'null_value'
+        #             'store': False,
+        #             'search_analyzer': search_analyzer,
+        #             'similarity': 'classic',
+        #             'term_vector': 'yes',
+        #             'type': 'keyword'}})
 
         props = {}
         for p in self.iter_properties():
+
             if p.rejected:
                 continue
-
-            props[p.name] = {'type': p.column_type}
 
             if not p.searchable:
                 props[p.name] = {
@@ -261,7 +260,6 @@ class PdfContext(GenericContext):
                     'index': 'not_analyzed'}
 
             elif p.column_type == 'text':
-
                 props[p.name] = {
                     'analyzer': p.analyzer,
                     'boost': p.weight,
@@ -282,85 +280,81 @@ class PdfContext(GenericContext):
                     'type': p.column_type}
 
             elif p.column_type == 'keyword':
-
-                props.update({p.name: {
-                                'analyzer': p.analyzer,
-                                'boost': p.weight,
-                                # 'doc_value'
-                                # 'eager_global_ordinals'
-                                # 'fields'
-                                # 'ignore_above'
-                                # 'include_in_all'
-                                'index': True,
-                                'index_options': 'docs',
-                                'norms': True,
-                                # 'null_value'
-                                'store': False,
-                                'search_analyzer': p.search_analyzer,
-                                'similarity': 'classic',
-                                'term_vector': 'yes',
-                                'type': p.column_type}})
+                props[p.name] = {
+                    'analyzer': p.analyzer,
+                    'boost': p.weight,
+                    # 'doc_value'
+                    # 'eager_global_ordinals'
+                    # 'fields'
+                    # 'ignore_above'
+                    # 'include_in_all'
+                    'index': True,
+                    'index_options': 'docs',
+                    'norms': True,
+                    # 'null_value'
+                    'store': False,
+                    'search_analyzer': p.search_analyzer,
+                    'similarity': 'classic',
+                    'term_vector': 'yes',
+                    'type': p.column_type}
 
             elif p.column_type in ('byte', 'double', 'double_range',
                             'float', 'float_range', 'half_float',
                             'integer', 'integer_range', 'long',
                             'long_range', 'scaled_float', 'short'):
-
-                props.update({p.name: {
-                                'coerce': True,
-                                'boost': p.weight,
-                                'doc_values': True,
-                                'ignore_malformed': True,
-                                # 'include_in_all'
-                                'index': True,
-                                # 'null_value'
-                                'store': False,
-                                'type': p.column_type}})
+                props[p.name] = {
+                    'coerce': True,
+                    'boost': p.weight,
+                    'doc_values': True,
+                    'ignore_malformed': True,
+                    # 'include_in_all'
+                    'index': True,
+                    # 'null_value'
+                    'store': False,
+                    'type': p.column_type}
 
                 # if p.type == 'scaled_float':
                 #     props[p.name]['scaling_factor'] = 10
 
             elif p.column_type in ('date', 'date_range'):
-
-                props.update({p.name: {
-                                'boost': p.weight,
-                                'doc_values': True,
-                                'format': p.pattern,
-                                # 'locale'
-                                'ignore_malformed': True,
-                                # 'include_in_all'
-                                'index': True,
-                                # 'null_value'
-                                'store': False,
-                                'type': p.column_type}})
+                props[p.name] = {
+                    'boost': p.weight,
+                    'doc_values': True,
+                    'format': p.pattern,
+                    # 'locale'
+                    'ignore_malformed': True,
+                    # 'include_in_all'
+                    'index': True,
+                    # 'null_value'
+                    'store': False,
+                    'type': p.column_type}
 
             elif p.column_type == 'boolean':
-
-                props.update({p.name: {
-                                'boost': p.weight,
-                                'doc_values': True,
-                                'index': True,
-                                # 'null_value'
-                                'store': False,
-                                'type': p.column_type}})
+                props[p.name] = {
+                    'boost': p.weight,
+                    'doc_values': True,
+                    'index': True,
+                    # 'null_value'
+                    'store': False,
+                    'type': p.column_type}
 
             elif p.column_type == 'binary':
-
-                props.update({p.name: {
-                                'doc_values': True,
-                                'store': False,
-                                'type': p.column_type}})
+                props[p.name] = {
+                    'doc_values': True,
+                    'store': False,
+                    'type': p.column_type}
 
             elif p.column_type == 'pdf':
-
                 mapping[type_name]['properties'].update({
-                                            'attachment.data': {
-                                                'type': 'text',
-                                                'analyzer': p.analyzer}})
+                    'attachment': {
+                        'properties': {
+                            'data': {
+                                'type': 'text',
+                                'analyzer': p.analyzer}}}})
 
         if props:
             mapping[type_name]['properties'].update({
-                                        'meta': {'properties': props}})
+                                            'meta': {'properties': props}})
 
         return clean_my_obj(mapping)
 

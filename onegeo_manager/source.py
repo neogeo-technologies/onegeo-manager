@@ -21,7 +21,7 @@ class GenericSource(metaclass=ABCMeta):
 
         s = search('^[a-z0-9_]{3,30}$', name)
         if not s:
-            raise ValueError("Malformed value fo 'name'.")  # TODO
+            raise ValueError("Malformed value fo 'name'.")
         self.name = name
 
         if not self.authorized_mode(mode):
