@@ -253,14 +253,19 @@ class PdfContext(GenericContext):
             if p.rejected:
                 continue
 
+            p_name = p.alias or p.name[1:]
+
             if not p.searchable:
-                props[p.name] = {
+                props[p_name] = {
                     'include_in_all': False,
                     'store': False,
                     'index': 'not_analyzed'}
+                continue
 
-            elif p.column_type == 'text':
-                props[p.name] = {
+            p_type = p.column_type
+
+            if p_type == 'text':
+                props[p_name] = {
                     'analyzer': p.analyzer,
                     'boost': p.weight,
                     # 'eager_global_ordinals'
@@ -277,10 +282,10 @@ class PdfContext(GenericContext):
                     # 'search_quote_analyzer'
                     'similarity': 'classic',
                     'term_vector': 'yes',
-                    'type': p.column_type}
+                    'type': p_type}
 
-            elif p.column_type == 'keyword':
-                props[p.name] = {
+            if p_type == 'keyword':
+                props[p_name] = {
                     'analyzer': p.analyzer,
                     'boost': p.weight,
                     # 'doc_value'
@@ -296,13 +301,13 @@ class PdfContext(GenericContext):
                     'search_analyzer': p.search_analyzer,
                     'similarity': 'classic',
                     'term_vector': 'yes',
-                    'type': p.column_type}
+                    'type': p_type}
 
-            elif p.column_type in ('byte', 'double', 'double_range',
+            if p_type in ('byte', 'double', 'double_range',
                             'float', 'float_range', 'half_float',
                             'integer', 'integer_range', 'long',
                             'long_range', 'scaled_float', 'short'):
-                props[p.name] = {
+                props[p_name] = {
                     'coerce': True,
                     'boost': p.weight,
                     'doc_values': True,
@@ -311,13 +316,13 @@ class PdfContext(GenericContext):
                     'index': True,
                     # 'null_value'
                     'store': False,
-                    'type': p.column_type}
+                    'type': p_type}
 
                 # if p.type == 'scaled_float':
                 #     props[p.name]['scaling_factor'] = 10
 
-            elif p.column_type in ('date', 'date_range'):
-                props[p.name] = {
+            if p_type in ('date', 'date_range'):
+                props[p_name] = {
                     'boost': p.weight,
                     'doc_values': True,
                     'format': p.pattern,
@@ -327,24 +332,24 @@ class PdfContext(GenericContext):
                     'index': True,
                     # 'null_value'
                     'store': False,
-                    'type': p.column_type}
+                    'type': p_type}
 
-            elif p.column_type == 'boolean':
-                props[p.name] = {
+            if p_type == 'boolean':
+                props[p_name] = {
                     'boost': p.weight,
                     'doc_values': True,
                     'index': True,
                     # 'null_value'
                     'store': False,
-                    'type': p.column_type}
+                    'type': p_type}
 
-            elif p.column_type == 'binary':
-                props[p.name] = {
+            if p_type == 'binary':
+                props[p_name] = {
                     'doc_values': True,
                     'store': False,
-                    'type': p.column_type}
+                    'type': p_type}
 
-            elif p.column_type == 'pdf':
+            if p_type == 'pdf':
                 mapping[type_name]['properties'].update({
                     'attachment': {
                         'properties': {
