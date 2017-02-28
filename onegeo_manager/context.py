@@ -227,25 +227,24 @@ class PdfContext(GenericContext):
 
         mapping = {type_name: {'properties': {}}}
 
-        # if self.tags:
-        #     mapping[type_name]['properties'].update({
-        #         'tags': {
-        #             'analyzer': analyzer,
-        #             'boost': 1.0,
-        #             # 'doc_value'
-        #             # 'eager_global_ordinals'
-        #             # 'fields'
-        #             # 'ignore_above'
-        #             # 'include_in_all'
-        #             'index': True,
-        #             'index_options': 'docs',
-        #             'norms': True,
-        #             # 'null_value'
-        #             'store': False,
-        #             'search_analyzer': search_analyzer,
-        #             'similarity': 'classic',
-        #             'term_vector': 'yes',
-        #             'type': 'keyword'}})
+        if self.tags:
+            mapping[type_name]['properties']['tags'] = {
+                    'analyzer': analyzer,
+                    'boost': 1.0,
+                    # 'doc_value'
+                    # 'eager_global_ordinals'
+                    # 'fields'
+                    # 'ignore_above'
+                    # 'include_in_all'
+                    'index': True,
+                    'index_options': 'docs',
+                    'norms': True,
+                    # 'null_value'
+                    'store': False,
+                    'search_analyzer': search_analyzer,
+                    'similarity': 'classic',
+                    'term_vector': 'yes',
+                    'type': 'keyword'}
 
         props = {}
         for p in self.iter_properties():
@@ -358,8 +357,8 @@ class PdfContext(GenericContext):
                                 'analyzer': p.analyzer}}}})
 
         if props:
-            mapping[type_name]['properties'].update({
-                                            'meta': {'properties': props}})
+            mapping[type_name]['properties'].update(
+                                        {'meta': {'properties': props}})
 
         return clean_my_obj(mapping)
 
