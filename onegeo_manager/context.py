@@ -253,7 +253,7 @@ class PdfContext(GenericContext):
             if p.rejected:
                 continue
 
-            p_name = p.alias or p.name[1:]
+            p_name = p.alias or p.name
 
             if not p.searchable:
                 props[p_name] = {
