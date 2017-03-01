@@ -98,14 +98,17 @@ class PropertyColumn:
         self.__searchable = val
 
     def set_weight(self, val):
+        if val is None:
+            return
         if not type(val) in [float, int]:
             raise TypeError('Input should be a float or int.')
         self.__weight = val
 
     def set_pattern(self, val):
         if not self.__column_type == 'date':
-            raise GenericException(
-                'Pattern attribute does not exist in this context.')
+            return
+            # raise GenericException(
+            #             'Pattern attribute does not exist in this context.')
         self.__pattern = val
 
     def set_analyzer(self, val):
