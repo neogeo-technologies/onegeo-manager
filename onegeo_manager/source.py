@@ -44,6 +44,9 @@ class GenericSource(metaclass=ABCMeta):
 
 class PdfSource(GenericSource):
 
+    META_FIELD = ('/Author', '/CreationDate', '/Creator', '/Keywords',
+                  '/ModDate', '/Producer', '/Subject', '/Title')
+
     def __init__(self, path, name, mode):
 
         self.__p = Path(path.startswith('file://') and path[7:] or path)
@@ -75,11 +78,20 @@ class PdfSource(GenericSource):
         return arr
 
     def get_collection(self):
-        for file in self._iter_pdf_path():
-            f = open(file.as_posix(), 'rb')
-            yield {'data': b64encode(f.read()).decode('utf-8'),
-                   'meta': dict(PdfFileReader(f).getDocumentInfo().items())}
 
+        def meta(pdf):
+            info = dict(pdf.getDocumentInfo())
+            # copy = {}
+            # for k, v in info.items():
+            #     if k not in self.META_FIELD:
+            #         copy[k] = v
+            # return copy
+            return info
+
+        for path in self._iter_pdf_path():
+            f = open(path.as_posix(), 'rb')
+            yield {'data': b64encode(f.read()).decode('utf-8'),
+                   'meta': meta(PdfFileReader(f))}
 
 class WfsSource(GenericSource):
 

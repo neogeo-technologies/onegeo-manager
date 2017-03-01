@@ -179,6 +179,29 @@ class GenericContext(metaclass=ABCMeta):
             if p.name == name:
                 return p
 
+    def update_property(self, name, **params):
+        for p in self.iter_properties():
+            if p.name == name:
+                for k, v in params.items():
+                    if k == 'alias':
+                        p.set_alias(v)
+                    if k == 'column_type':
+                        p.set_column_type(v)
+                    if k == 'occurs':
+                        p.set_occurs(v)
+                    if k == 'rejected':
+                        p.is_rejected(v)
+                    if k == 'searchable':
+                        p.is_searchable(v)
+                    if k == 'weight':
+                        p.set_weight(v)
+                    if k == 'pattern':
+                        p.set_pattern(v)
+                    if k == 'analyzer':
+                        p.set_analyzer(v)
+                    if k == 'search_analyzer':
+                        p.set_search_analyzer(v)
+
     def iter_tags(self):
         return iter(self.__tags)
 
@@ -210,6 +233,9 @@ class GenericContext(metaclass=ABCMeta):
 
 
 class PdfContext(GenericContext):
+
+    META_FIELD = ('/Author', '/CreationDate', '/Creator', '/Keywords',
+                  '/ModDate', '/Producer', '/Subject', '/Title')
 
     def __init__(self, elastic_index, elastic_type):
 
@@ -263,6 +289,17 @@ class PdfContext(GenericContext):
 
             p_type = p.column_type
 
+            if p.name in self.META_FIELD:
+                pass
+
+            if p_type == 'pdf':
+                mapping[type_name]['properties'].update({
+                    'attachment': {
+                        'properties': {
+                            'data': {
+                                'type': 'text',
+                                'analyzer': p.analyzer}}}})
+
             if p_type == 'text':
                 props[p_name] = {
                     'analyzer': p.analyzer,
@@ -303,9 +340,9 @@ class PdfContext(GenericContext):
                     'type': p_type}
 
             if p_type in ('byte', 'double', 'double_range',
-                            'float', 'float_range', 'half_float',
-                            'integer', 'integer_range', 'long',
-                            'long_range', 'scaled_float', 'short'):
+                          'float', 'float_range', 'half_float',
+                          'integer', 'integer_range', 'long',
+                          'long_range', 'scaled_float', 'short'):
                 props[p_name] = {
                     'coerce': True,
                     'boost': p.weight,
@@ -347,14 +384,6 @@ class PdfContext(GenericContext):
                     'doc_values': True,
                     'store': False,
                     'type': p_type}
-
-            if p_type == 'pdf':
-                mapping[type_name]['properties'].update({
-                    'attachment': {
-                        'properties': {
-                            'data': {
-                                'type': 'text',
-                                'analyzer': p.analyzer}}}})
 
         if props:
             mapping[type_name]['properties'].update(
