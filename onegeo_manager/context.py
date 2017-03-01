@@ -318,9 +318,6 @@ class PdfContext(GenericContext):
 
             p_type = p.column_type
 
-            if p.name in self.META_FIELD:
-                pass
-
             if p_type == 'pdf':
                 mapping[type_name]['properties'].update({
                     'attachment': {
