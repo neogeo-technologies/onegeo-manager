@@ -308,15 +308,15 @@ class PdfContext(GenericContext):
                 continue
 
             p_name = p.alias or p.name
+            p_type = p.column_type
 
             if not p.searchable:
                 props[p_name] = {
                     'include_in_all': False,
+                    'index': 'not_analyzed',
                     'store': False,
-                    'index': 'not_analyzed'}
+                    'type': p_type}
                 continue
-
-            p_type = p.column_type
 
             if p_type == 'pdf':
                 mapping[type_name]['properties'].update({
