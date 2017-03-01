@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from base64 import b64encode
+from PyPDF2 import PdfFileReader
 
 from .exception import GenericException
 from .utils import clean_my_obj
@@ -234,6 +236,11 @@ class GenericContext(metaclass=ABCMeta):
         raise NotImplementedError('This is an abstract method. '
                                   "You can't do anything with it.")
 
+    @abstractmethod
+    def get_collection(self, *args, **kwargs):
+        raise NotImplementedError("This is an abstract method. "
+                                  "You can't do anything with it.")
+
 
 class PdfContext(GenericContext):
 
@@ -246,6 +253,25 @@ class PdfContext(GenericContext):
             raise TypeError("Argument should be an instance of 'PdfType'.")
 
         super().__init__(elastic_index, elastic_type)
+
+    def get_collection(self, *args, **kwargs):
+
+        src = self.elastic_type.source
+
+        def meta(pdf):
+            info = dict(pdf.getDocumentInfo())
+            copy = {}
+            for k, v in info.items():
+                prop = self.get_property(k)
+                if prop.rejected:
+                    continue
+                copy[k] = v
+            return copy
+
+        for path in src._iter_pdf_path():
+            f = open(path.as_posix(), 'rb')
+            yield {'data': b64encode(f.read()).decode('utf-8'),
+                   'meta': meta(PdfFileReader(f))}
 
     def generate_elastic_mapping(self):
 

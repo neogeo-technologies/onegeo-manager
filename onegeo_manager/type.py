@@ -11,7 +11,8 @@ class GenericType(metaclass=ABCMeta):
                    'half_float', 'integer', 'integer_range', 'ip', 'keyword',
                    'long', 'long_range', 'scaled_float', 'short', 'text']
 
-    def __init__(self, name):
+    def __init__(self, source, name):
+        self.__source = source
         self.__name = name
         self.__columns = []
 
@@ -27,6 +28,10 @@ class GenericType(metaclass=ABCMeta):
         if not type(val[0]) is int or type(val[1]) is int:
             return False
         return True
+
+    @property
+    def source(self):
+        return self.__source
 
     @property
     def name(self):
@@ -85,8 +90,8 @@ class GenericType(metaclass=ABCMeta):
 
 class PdfType(GenericType):
 
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, source, name):
+        super().__init__(source, name)
         self.add_column('file', column_type='pdf', occurs=(1, 1))
 
     def authorized_column_type(self, val):
@@ -98,8 +103,8 @@ class FeatureType(GenericType):
     GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
                      'LineString', 'MultiLineString', 'GeometryCollection']
 
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, source, name):
+        super().__init__(source, name)
         self.geometry = 'GeometryCollection'
 
     def authorized_column_type(self, val):

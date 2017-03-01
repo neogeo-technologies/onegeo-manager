@@ -68,7 +68,7 @@ class PdfSource(GenericSource):
 
         arr = []
         for d in self._iter_dir_path():
-            t = PdfType(d.name)
+            t = PdfType(self, d.name)
             for p in self._iter_pdf_path():
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
