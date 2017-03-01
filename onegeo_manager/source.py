@@ -81,12 +81,11 @@ class PdfSource(GenericSource):
 
         def meta(pdf):
             info = dict(pdf.getDocumentInfo())
-            # copy = {}
-            # for k, v in info.items():
-            #     if k not in self.META_FIELD:
-            #         copy[k] = v
-            # return copy
-            return info
+            copy = {}
+            for k, v in info.items():
+                if k not in self.META_FIELD:
+                    copy[k] = v
+            return copy
 
         for path in self._iter_pdf_path():
             f = open(path.as_posix(), 'rb')
