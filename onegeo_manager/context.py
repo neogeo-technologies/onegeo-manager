@@ -268,6 +268,8 @@ class PdfContext(GenericContext):
             for k, _ in info.items():
                 if k in self.META_FIELD:
                     del copy[k]
+                    continue
+                print(k)
                 prop = self.get_property(k)
                 if prop.rejected:
                     del copy[k]
