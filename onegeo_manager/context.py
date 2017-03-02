@@ -114,9 +114,13 @@ class PropertyColumn:
         self.__pattern = val
 
     def set_analyzer(self, val):
+        if val == '':
+            val = None
         self.__analyzer = val
 
     def set_search_analyzer(self, val):
+        if val == '':
+            val = None
         self.__search_analyzer = val
 
     def all(self):
