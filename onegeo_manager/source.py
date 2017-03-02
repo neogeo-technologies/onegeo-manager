@@ -72,6 +72,8 @@ class PdfSource(GenericSource):
             for p in self._iter_pdf_path():
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
+                    if k in self.META_FIELD:
+                        continue
                     if k not in t.iter_column_name():
                         t.add_column(k)
             arr.append(t)
@@ -81,10 +83,10 @@ class PdfSource(GenericSource):
 
         def meta(pdf):
             info = dict(pdf.getDocumentInfo())
-            copy = {}
+            copy = info.copy()
             for k, v in info.items():
-                if k not in self.META_FIELD:
-                    copy[k] = v
+                if k in self.META_FIELD:
+                    del copy[k]
             return copy
 
         for path in self._iter_pdf_path():

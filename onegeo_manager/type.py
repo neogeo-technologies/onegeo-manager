@@ -92,7 +92,7 @@ class PdfType(GenericType):
 
     def __init__(self, source, name):
         super().__init__(source, name)
-        self.add_column('file', column_type='pdf', occurs=(1, 1))
+        self.add_column('data', column_type='pdf', occurs=(1, 1))
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE + ['pdf']
