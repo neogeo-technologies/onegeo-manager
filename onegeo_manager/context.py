@@ -311,11 +311,39 @@ class PdfContext(GenericContext):
         props = {}
         for p in self.iter_properties():
 
-            if p.rejected:
-                continue
-
             p_name = p.alias or p.name
             p_type = p.column_type
+
+            if p_type == 'pdf':
+                mapping[type_name]['properties'].update({
+                    'attachment': {
+                        'properties': {
+                            'data': {
+                                'analyzer': p.analyzer,
+                                'boost': p.weight,
+                                # 'eager_global_ordinals'
+                                # 'fielddata'
+                                # 'fielddata_frequency_filter'
+                                'fields': {
+                                    'keyword': {
+                                        'include_in_all': False,
+                                        'index': 'not_analyzed',
+                                        'type': 'keyword',
+                                        'store': False}},
+                                'include_in_all': False,
+                                'index': True,
+                                'index_options': 'offsets',
+                                'norms': True,
+                                'position_increment_gap': 100,
+                                'store': False,
+                                'search_analyzer': p.search_analyzer,
+                                # 'search_quote_analyzer'
+                                'similarity': 'classic',
+                                'term_vector': 'yes',
+                                'type': 'text'}}}})
+
+            if p.rejected:
+                continue
 
             if not p.searchable:
                 props[p_name] = {
@@ -325,14 +353,6 @@ class PdfContext(GenericContext):
                     'type': p_type}
                 continue
 
-            if p_type == 'pdf':
-                mapping[type_name]['properties'].update({
-                    'attachment': {
-                        'properties': {
-                            'data': {
-                                'type': 'text',
-                                'analyzer': p.analyzer}}}})
-
             if p_type == 'text':
                 props[p_name] = {
                     'analyzer': p.analyzer,
@@ -340,8 +360,13 @@ class PdfContext(GenericContext):
                     # 'eager_global_ordinals'
                     # 'fielddata'
                     # 'fielddata_frequency_filter'
-                    # 'fields'
-                    # 'include_in_all'
+                    'fields': {
+                        'keyword': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'type': 'keyword',
+                            'store': False}},
+                    'include_in_all': False,
                     'index': True,
                     'index_options': 'offsets',
                     'norms': True,
@@ -361,7 +386,7 @@ class PdfContext(GenericContext):
                     # 'eager_global_ordinals'
                     # 'fields'
                     # 'ignore_above'
-                    # 'include_in_all'
+                    'include_in_all': False,
                     'index': True,
                     'index_options': 'docs',
                     'norms': True,
@@ -381,7 +406,7 @@ class PdfContext(GenericContext):
                     'boost': p.weight,
                     'doc_values': True,
                     'ignore_malformed': True,
-                    # 'include_in_all'
+                    'include_in_all': False,
                     'index': True,
                     # 'null_value'
                     'store': False,
@@ -397,7 +422,7 @@ class PdfContext(GenericContext):
                     'format': p.pattern,
                     # 'locale'
                     'ignore_malformed': True,
-                    # 'include_in_all'
+                    'include_in_all': False,
                     'index': True,
                     # 'null_value'
                     'store': False,
