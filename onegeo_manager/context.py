@@ -362,7 +362,6 @@ class PdfContext(GenericContext):
                     # 'fielddata_frequency_filter'
                     'fields': {
                         'keyword': {
-                            'include_in_all': False,
                             'index': 'not_analyzed',
                             'type': 'keyword',
                             'store': False}},
