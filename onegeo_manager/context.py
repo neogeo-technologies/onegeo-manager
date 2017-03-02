@@ -264,15 +264,14 @@ class PdfContext(GenericContext):
 
         def meta(pdf):
             info = dict(pdf.getDocumentInfo())
-            copy = info.copy()
-            for k, _ in info.items():
+            copy = {}
+            for k, v in info.items():
                 if k in self.META_FIELD:
-                    del copy[k]
                     continue
-                print(k)
                 prop = self.get_property(k)
                 if prop.rejected:
-                    del copy[k]
+                    continue
+                copy[prop.alias or prop.name] = v
             return copy
 
         for path in src._iter_pdf_path():
