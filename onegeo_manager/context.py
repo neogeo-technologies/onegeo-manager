@@ -277,6 +277,7 @@ class PdfContext(GenericContext):
         for path in src._iter_pdf_path():
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
+                   'filename': path.name,
                    'meta': meta(PdfFileReader(f))}
 
     def generate_elastic_mapping(self):
@@ -286,7 +287,12 @@ class PdfContext(GenericContext):
 
         type_name = self.elastic_type.name
 
-        mapping = {type_name: {'properties': {}}}
+        mapping = {type_name: {'properties': {
+                                   'filename': {
+                                       'include_in_all': False,
+                                       'index': 'not_analyzed',
+                                       'store': False,
+                                       'type': 'keyword'}}}}
 
         if self.tags:
             mapping[type_name]['properties']['tags'] = {
@@ -314,31 +320,30 @@ class PdfContext(GenericContext):
             p_type = p.column_type
 
             if p_type == 'pdf':
-                mapping[type_name]['properties'].update({
-                    'attachment': {
-                        'properties': {
-                            'data': {
-                                'analyzer': p.analyzer,
-                                'boost': p.weight,
-                                # 'eager_global_ordinals'
-                                # 'fielddata'
-                                # 'fielddata_frequency_filter'
-                                'fields': {
-                                    'keyword': {
-                                        'index': 'not_analyzed',
-                                        'type': 'keyword',
-                                        'store': False}},
-                                'include_in_all': False,
-                                'index': True,
-                                'index_options': 'offsets',
-                                'norms': True,
-                                'position_increment_gap': 100,
-                                'store': False,
-                                'search_analyzer': p.search_analyzer,
-                                # 'search_quote_analyzer'
-                                'similarity': 'classic',
-                                'term_vector': 'yes',
-                                'type': 'text'}}}})
+                mapping[type_name]['properties']['attachment'] = {
+                    'properties': {
+                        'data': {
+                            'analyzer': p.analyzer,
+                            'boost': p.weight,
+                            # 'eager_global_ordinals'
+                            # 'fielddata'
+                            # 'fielddata_frequency_filter'
+                            'fields': {
+                                'keyword': {
+                                    'index': 'not_analyzed',
+                                    'type': 'keyword',
+                                    'store': False}},
+                            'include_in_all': False,
+                            'index': True,
+                            'index_options': 'offsets',
+                            'norms': True,
+                            'position_increment_gap': 100,
+                            'store': False,
+                            'search_analyzer': p.search_analyzer,
+                            # 'search_quote_analyzer'
+                            'similarity': 'classic',
+                            'term_vector': 'yes',
+                            'type': 'text'}}}
 
             if p.rejected:
                 continue
@@ -441,8 +446,7 @@ class PdfContext(GenericContext):
                     'type': p_type}
 
         if props:
-            mapping[type_name]['properties'].update(
-                                        {'meta': {'properties': props}})
+            mapping[type_name]['properties']['meta'] = {'properties': props}
 
         return clean_my_obj(mapping)
 
