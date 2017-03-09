@@ -13,9 +13,10 @@ class PropertyColumn:
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
-                 analyzer=None, search_analyzer=None):
+                 analyzer=None, search_analyzer=None, count=None):
 
         self.__name = name
+        self.__count = count
 
         self.__alias = None
         self.__column_type = None
@@ -42,6 +43,10 @@ class PropertyColumn:
     @property
     def name(self):
         return self.__name
+
+    @property
+    def count(self):
+        return self.__count
 
     @property
     def alias(self):
@@ -125,6 +130,7 @@ class PropertyColumn:
 
     def all(self):
         return {'name': self.name,
+                'count': self.count,
                 'alias': self.alias,
                 'type': self.column_type,
                 'occurs': self.occurs,
@@ -153,9 +159,9 @@ class GenericContext(metaclass=ABCMeta):
         self.set_elastic_index(elastic_index)
 
         for c in self.elastic_type.iter_columns():
-            self.__properties.append(PropertyColumn(c['name'],
-                                                    column_type=c['type'],
-                                                    occurs=c['occurs']))
+            self.__properties.append(PropertyColumn(
+                                c['name'], column_type=c['type'],
+                                occurs=c['occurs'], count=c['count']))
 
     @property
     def elastic_type(self):
