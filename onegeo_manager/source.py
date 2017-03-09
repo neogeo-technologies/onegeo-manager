@@ -68,15 +68,22 @@ class PdfSource(GenericSource):
 
         arr = []
         for d in self._iter_dir_path():
+
+            columns = {}
             t = PdfType(self, d.name)
             for p in self._iter_pdf_path():
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
                     if k in self.META_FIELD:
                         continue
-                    if k not in t.iter_column_name():
-                        t.add_column(k)
+                    if k in columns:
+                        columns[k] += 1
+                    else:
+                        columns[k] = 1
+            for column, count in columns.items():
+                t.add_column(column, count=count)
             arr.append(t)
+
         return arr
 
     def get_collection(self):

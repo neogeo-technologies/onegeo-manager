@@ -194,7 +194,7 @@ class GenericContext(metaclass=ABCMeta):
                 for k, v in params.items():
                     if k == 'alias':
                         p.set_alias(v)
-                    if k == 'column_type':
+                    if k in ('column_type', 'type'):
                         p.set_column_type(v)
                     if k == 'occurs':
                         p.set_occurs(v)
@@ -396,7 +396,6 @@ class PdfContext(GenericContext):
                     'store': False,
                     'search_analyzer': p.search_analyzer,
                     'similarity': 'classic',
-                    'term_vector': 'yes',
                     'type': p_type}
 
             if p_type in ('byte', 'double', 'double_range',

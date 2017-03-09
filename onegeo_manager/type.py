@@ -44,7 +44,7 @@ class GenericType(metaclass=ABCMeta):
     def iter_columns(self):
         return iter(self.__columns)
 
-    def add_column(self, name, column_type=None, occurs=(0, 1)):
+    def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
 
         if self.is_existing_column(name):
             raise Exception(
@@ -58,8 +58,8 @@ class GenericType(metaclass=ABCMeta):
         if self.authorized_occurs(occurs):
             raise Exception('\'{0}\' is malformed'.format(occurs))
 
-        self.__columns.append({
-                    'name': name, 'occurs': occurs, 'type': column_type})
+        self.__columns.append({'name': name, 'occurs': occurs,
+                               'type': column_type, 'count': count})
 
     # def update_column(self, name, column_type=None, occurs=None):
     #
@@ -85,7 +85,7 @@ class GenericType(metaclass=ABCMeta):
         return iter([c['name'] for c in self.__columns])
 
     def is_existing_column(self, name):
-        return name in self.iter_column_name()
+        return name in self.iter_column_name() and True or False
 
 
 class PdfType(GenericType):
