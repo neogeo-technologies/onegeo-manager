@@ -284,7 +284,15 @@ class PdfContext(GenericContext):
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
-                   'meta': meta(PdfFileReader(f))}
+                   'meta': meta(PdfFileReader(f)),
+                   'origin': {
+                       'source': {
+                           'name': src.name,
+                           'uri': src.uri,
+                           'mode': src.mode
+                       },
+                       'resource': {
+                           'name': self.elastic_type.name}}}
 
     def generate_elastic_mapping(self):
 
