@@ -453,6 +453,32 @@ class PdfContext(GenericContext):
         if props:
             mapping[type_name]['properties']['meta'] = {'properties': props}
 
+        mapping[type_name]['properties']['origin'] = {
+            'properties': {
+                'source': {
+                    'properties': {
+                        'name': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'},
+                        'uri': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False, 'type': 'keyword'},
+                        'mode': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'}}},
+                'resource': {
+                    'properties': {
+                        'name': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'}}}}}
+
         return clean_my_obj(mapping)
 
 
