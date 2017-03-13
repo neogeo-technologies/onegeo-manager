@@ -254,8 +254,8 @@ class GenericContext(metaclass=ABCMeta):
 
 class PdfContext(GenericContext):
 
-    META_FIELD = ('/Author', '/CreationDate', '/Creator', '/Keywords',
-                  '/ModDate', '/Producer', '/Subject', '/Title')
+    META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
+                  'ModDate', 'Producer', 'Subject', 'Title')
 
     def __init__(self, elastic_index, elastic_type):
 
@@ -272,6 +272,7 @@ class PdfContext(GenericContext):
             info = dict(pdf.getDocumentInfo())
             copy = {}
             for k, v in info.items():
+                k = k[1:]
                 if k in self.META_FIELD:
                     continue
                 prop = self.get_property(k)

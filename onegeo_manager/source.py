@@ -44,8 +44,8 @@ class GenericSource(metaclass=ABCMeta):
 
 class PdfSource(GenericSource):
 
-    META_FIELD = ('/Author', '/CreationDate', '/Creator', '/Keywords',
-                  '/ModDate', '/Producer', '/Subject', '/Title')
+    META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
+                  'ModDate', 'Producer', 'Subject', 'Title')
 
     def __init__(self, path, name, mode):
 
@@ -74,6 +74,7 @@ class PdfSource(GenericSource):
             for p in self._iter_pdf_path():
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
+                    k = k[1:]
                     if k in self.META_FIELD:
                         continue
                     if k in columns:
@@ -92,6 +93,7 @@ class PdfSource(GenericSource):
             info = dict(pdf.getDocumentInfo())
             copy = info.copy()
             for k, v in info.items():
+                k = k[1:]
                 if k in self.META_FIELD:
                     del copy[k]
             return copy
