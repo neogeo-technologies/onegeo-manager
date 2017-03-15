@@ -284,7 +284,7 @@ class PdfContext(GenericContext):
         for path in src._iter_pdf_path():
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
-                   'filename': path.name,
+                   'filename': path.name.encode('utf-8'),
                    'meta': meta(PdfFileReader(f)),
                    'origin': {
                        'source': {
