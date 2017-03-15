@@ -282,6 +282,15 @@ class PdfContext(GenericContext):
             return copy
 
         for path in src._iter_pdf_path():
+
+            ### Super moche ###
+            try:
+                path.name.encode('utf-8')
+            except UnicodeEncodeError as err:
+                print(err)
+                continue
+            ### Super moche ###
+
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name.encode('utf-8'),
