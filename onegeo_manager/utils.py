@@ -39,13 +39,6 @@ class Singleton(type):
 
 class XMLtoObj:
 
-    __obj = {}     # L'objet à retourner
-    __cur = None   # Tag de l'élément courant
-    __attr = None  # Attribut(s) de l'élément courant
-    __txt = None   # Contenu textuel de l'élément courant
-    __pos = 0      # Position dans l'arbre
-    __path = {}    # Chemin vers l'élément courant
-
     def __init__(self, attrib_tag='@', text_tag='text'):
 
         # Définit les options de marquage des éléments XML
@@ -53,6 +46,13 @@ class XMLtoObj:
 
         self.attrib_tag = attrib_tag
         self.text_tag = text_tag
+
+        self.__obj = {}  # L'objet à retourner
+        self.__cur = None  # Tag de l'élément courant
+        self.__attr = None  # Attribut(s) de l'élément courant
+        self.__pos = 0  # Position dans l'arbre
+        self.__path = {}  # Chemin vers l'élément courant
+        self.__data = [] # Liste des data
 
     def start(self, tag, attrib):
 
@@ -103,11 +103,14 @@ class XMLtoObj:
 
     def data(self, data):
 
-        def browse_n_update(tree):
+        if data.strip():
+            self.__data.append(data)
+
+    def end(self, tag):
+
+        def browse_n_update(tree, cur, txt):
             # Parcourt l'objet et met à jour l'élément courant.
 
-            cur = self.__cur
-            txt = self.__txt
             for key, subtree in tree.items():
                 if key == cur:
                     if not subtree:
@@ -120,13 +123,13 @@ class XMLtoObj:
                 if isinstance(subtree, list):
                     subtree = subtree[-1]
                 if isinstance(subtree, dict):
-                    browse_n_update(subtree)
+                    browse_n_update(subtree, cur, txt)
 
-        self.__txt = data.strip() or None
-        if self.__txt:
-            browse_n_update(self.__obj)
+        if len(self.__data) > 0:
+            browse_n_update(self.__obj, self.__cur, ''.join(self.__data))
 
-    def end(self, tag):
+        self.__data.clear()
+
         self.__pos -= 1
         # if not tag == self.__path[self.__pos]:
         #     raise ValueError(
