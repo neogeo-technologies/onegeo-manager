@@ -22,4 +22,7 @@ setup(name='onegeo_lib',
       install_requires=[
                 'aiohttp>=1.2.0',
                 'async_timeout>=1.1.0',
-                'PyPDF2>=1.26.0'])
+                'neogeo_utils',
+                'PyPDF2>=1.26.0'],
+      dependency_links=[
+                'git+https://github.com/neogeo-technologies/neogeo_utils.git'])

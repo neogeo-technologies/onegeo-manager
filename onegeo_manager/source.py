@@ -9,27 +9,18 @@ from .wfs import WfsMethod
 from .type import FeatureType, PdfType
 
 
-__all__ = ['PdfSource', 'WfsSource']
+__all__ = ['Source', 'PdfSource', 'WfsSource']
 
 
 class GenericSource(metaclass=ABCMeta):
 
-    MODE = ('pdf', 'wfs')
-
-    def __init__(self, uri, name, mode):
+    def __init__(self, uri, name):
         self.uri = uri
 
         s = search('^[a-z0-9_]{3,30}$', name)
         if not s:
-            raise ValueError("Malformed value fo 'name'.")
+            raise ValueError("Malformed value for 'name'.")
         self.name = name
-
-        if not self.authorized_mode(mode):
-            raise ValueError("Mode value '{0}' not authorized.".format(mode))
-        self.mode = mode
-
-    def authorized_mode(self, val):
-        return val in self.MODE
 
     @abstractmethod
     def get_types(self, *args, **kwargs):
@@ -47,13 +38,13 @@ class PdfSource(GenericSource):
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
 
-    def __init__(self, path, name, mode):
+    def __init__(self, path, name):
 
         self.__p = Path(path.startswith('file://') and path[7:] or path)
         if not self.__p.exists():
             raise ConnectionError('The given path does not exist.')
 
-        super().__init__(self.__p.as_uri(), name, mode)
+        super().__init__(self.__p.as_uri(), name)
 
     def _iter_pdf_path(self):
         return iter(list(self.__p.glob('**/*.pdf')))
@@ -103,10 +94,11 @@ class PdfSource(GenericSource):
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'meta': meta(PdfFileReader(f))}
 
+
 class WfsSource(GenericSource):
 
-    def __init__(self, url, name, mode):
-        super().__init__(url, name, mode)
+    def __init__(self, url, name):
+        super().__init__(url, name)
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
@@ -119,7 +111,7 @@ class WfsSource(GenericSource):
         for e in iter([(m['@name'], m['@type'].split(':')[-1])
                        for m in desc['schema']['element']]):
 
-            ft = FeatureType(e[0])
+            ft = FeatureType(self, e[0])
 
             t = None
             for complex_type in iter(desc['schema']['complexType']):
@@ -206,3 +198,20 @@ class WfsSource(GenericSource):
 
     def __get_feature(self, **params):
         return WfsMethod.get_feature(self.uri, **params)
+
+
+class Source:
+
+    def __new__(cls, uri, name, mode):
+
+        modes = {'pdf': PdfSource,
+                 'wfs': WfsSource}
+
+        cls = modes.get(mode, False)
+        if not cls:
+            raise ValueError('Unrecognized mode.')
+
+        self = object.__new__(cls)
+        self.__init__(uri, name)
+
+        return self

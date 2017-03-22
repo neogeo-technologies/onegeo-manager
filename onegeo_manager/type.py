@@ -100,6 +100,8 @@ class PdfType(GenericType):
 
 class FeatureType(GenericType):
 
+    COLUMN_TYPE = ['boolean', 'date', 'double', 'integer', 'string']
+
     GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
                      'LineString', 'MultiLineString', 'GeometryCollection']
 

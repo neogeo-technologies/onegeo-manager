@@ -1,13 +1,13 @@
-# from asyncio import coroutine  # -> PY_34
 from asyncio import get_event_loop
 from aiohttp import ClientSession
 from async_timeout import timeout
 from functools import wraps
+from neogeo_xml import XMLtoObj
 from re import search
 from xml.etree.ElementTree import XMLParser
 
 from .exception import OGCExceptionReport
-from .utils import StaticClass, XMLtoObj
+from .utils import StaticClass
 
 
 def convert_response(f):
@@ -20,7 +20,7 @@ def convert_response(f):
         if not isinstance(response, str):
             return response
 
-        target = XMLtoObj(attrib_tag='@', text_tag='_')
+        target = XMLtoObj()
         parser = XMLParser(target=target)
         parser.feed(response)
         res = parser.close()
@@ -54,7 +54,7 @@ class WfsMethod(metaclass=StaticClass):
 
     @staticmethod
     @convert_response
-    def _execute_aiohttp_get(self, request_name, url, **params):
+    def _exe_aiohttp_get(self, request_name, url, **params):
 
         params.update({'SERVICE': self.SERVICE})
 
@@ -72,9 +72,8 @@ class WfsMethod(metaclass=StaticClass):
                     if not r.status == 200:
                         r.raise_for_status()
 
-                    pattern = '^(text|application)\/(\w+)\;?(\s?charset\=[\w\d\D]+)?$'
+                    pattern = '^(text|application)\/((\w+)\+?)+\;?(\s?charset\=[\w\d\D]+)?$'
                     s = search(pattern, r.content_type)
-
                     if s and s.group(2) == 'json':
                         return await r.json()
                     elif s and s.group(2) == 'xml':
@@ -86,40 +85,17 @@ class WfsMethod(metaclass=StaticClass):
             async with ClientSession(loop=_loop) as client:
                 return await fetch(client, _url, **_params)
 
-        # -> PY_34
-        # @coroutine
-        # def fetch(_client, _url, **_params):
-        #     with timeout(10):
-        #         r = yield from _client.get(_url, **_params)
-        #         if not r.status == 200:
-        #             r.raise_for_status()
-        #
-        #         pattern = '^(text|application)\/(\w+)\;?(\s?charset\=[\w\d\D]+)?$'
-        #         s = search(pattern, r.content_type)
-        #
-        #         if s and s.group(2) == 'json':
-        #             return (yield from r.json())
-        #         elif s and s.group(2) == 'xml':
-        #             return (yield from r.text())
-        #         else:  # TODO
-        #             raise Exception('Error service response')
-        #
-        # @coroutine
-        # def main(_loop, _url, **_params):
-        #     with ClientSession(loop=_loop) as client:
-        #         return (yield from fetch(client, _url, **_params))
-
         loop = get_event_loop()
         return loop.run_until_complete(main(loop, url, params=params))
 
     @classmethod
     def get_capabilities(cls, url, **params):
-        return cls._execute_aiohttp_get(cls, 'GetCapabilities', url, **params)
+        return cls._exe_aiohttp_get(cls, 'GetCapabilities', url, **params)
 
     @classmethod
     def describe_feature_type(cls, url, **params):
-        return cls._execute_aiohttp_get(cls, 'DescribeFeatureType', url, **params)
+        return cls._exe_aiohttp_get(cls, 'DescribeFeatureType', url, **params)
 
     @classmethod
     def get_feature(cls, url, **params):
-        return cls._execute_aiohttp_get(cls, 'GetFeature', url, **params)
+        return cls._exe_aiohttp_get(cls, 'GetFeature', url, **params)
