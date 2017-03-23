@@ -6,7 +6,7 @@ from re import search
 from PyPDF2 import PdfFileReader
 
 from .wfs import WfsMethod
-from .type import FeatureType, PdfType
+from .type import WfsType, PdfType
 
 
 __all__ = ['Source', 'PdfSource', 'WfsSource']
@@ -63,6 +63,7 @@ class PdfSource(GenericSource):
             columns = {}
             t = PdfType(self, d.name)
             for p in self._iter_pdf_path():
+                print(p)
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
                     k = k[1:]
@@ -92,6 +93,7 @@ class PdfSource(GenericSource):
         for path in self._iter_pdf_path():
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
+                   'filename': path.name,
                    'meta': meta(PdfFileReader(f))}
 
 
@@ -111,7 +113,7 @@ class WfsSource(GenericSource):
         for e in iter([(m['@name'], m['@type'].split(':')[-1])
                        for m in desc['schema']['element']]):
 
-            ft = FeatureType(self, e[0])
+            ft = WfsType(self, e[0])
 
             t = None
             for complex_type in iter(desc['schema']['complexType']):
@@ -171,7 +173,9 @@ class WfsSource(GenericSource):
                     raise ValueError('TODO')  # TODO
                 params[k] = s.group(0)
 
-            params.update({'TYPENAMES': typename, 'STARTINDEX': 0, 'COUNT': count})
+            params.update({'TYPENAMES': typename,
+                           'STARTINDEX': 0,
+                           'COUNT': count})
 
             # C'est très moche mais c'est pour contourner un bug(?) de 'aiohttp'
             params['OUTPUTFORMAT'] = 'geojson'
@@ -213,5 +217,4 @@ class Source:
 
         self = object.__new__(cls)
         self.__init__(uri, name)
-
         return self

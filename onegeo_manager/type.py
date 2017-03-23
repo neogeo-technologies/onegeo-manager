@@ -1,7 +1,7 @@
 from abc import ABCMeta
 
 
-__all__ = ['PdfType', 'FeatureType']
+__all__ = []
 
 
 class GenericType(metaclass=ABCMeta):
@@ -98,7 +98,7 @@ class PdfType(GenericType):
         return val in self.COLUMN_TYPE + ['pdf']
 
 
-class FeatureType(GenericType):
+class WfsType(GenericType):
 
     COLUMN_TYPE = ['boolean', 'date', 'double', 'integer', 'string']
 

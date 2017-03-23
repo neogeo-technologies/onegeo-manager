@@ -1,12 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from base64 import b64encode
+from functools import wraps
 from PyPDF2 import PdfFileReader
 
-from .exception import GenericException
 from .utils import clean_my_obj
 
 
-__all__ = ['PropertyColumn', 'PdfContext', 'FeatureContext']
+__all__ = ['Context', 'PdfContext', 'WfsContext']
 
 
 class PropertyColumn:
@@ -264,45 +264,37 @@ class PdfContext(GenericContext):
 
         super().__init__(elastic_index, elastic_type)
 
-    def get_collection(self, *args, **kwargs):
+    def _format(f):
 
-        src = self.elastic_type.source
+        @wraps(f)
 
-        def meta(pdf):
-            info = dict(pdf.getDocumentInfo())
-            copy = {}
-            for k, v in info.items():
-                k = k[1:]
-                if k in self.META_FIELD:
-                    continue
-                prop = self.get_property(k)
-                if prop.rejected:
-                    continue
-                copy[prop.alias or prop.name] = v
-            return copy
+        def wrapper(self, *args, **kwargs):
 
-        for path in src._iter_pdf_path():
+            def alias(properties):
+                new = {}
+                for k, v in properties.items():
+                    prop = self.get_property(k)
+                    if prop.rejected:
+                        continue
+                    new[prop.alias or prop.name] = v
+                return new
 
-            ### Super moche ###
-            # try:
-            #     path.name.encode('utf-8')
-            # except UnicodeEncodeError as err:
-            #     print(err)
-            #     continue
-            ### Super moche ###
+            for e in f(self, *args, **kwargs):
+                yield {'data': e.data,
+                       'filename': e.filename,
+                       'meta': alias(e.meta),
+                       'origin': {
+                           'source': {
+                               'name': self.elastic_type.source.name,
+                               'uri': self.elastic_type.source.uri},
+                           'resource': {
+                               'name': self.elastic_type.name}}}
 
-            f = open(path.as_posix(), 'rb')
-            yield {'data': b64encode(f.read()).decode('utf-8'),
-                   'filename': path.name,
-                   'meta': meta(PdfFileReader(f)),
-                   'origin': {
-                       'source': {
-                           'name': src.name,
-                           'uri': src.uri,
-                           'mode': src.mode
-                       },
-                       'resource': {
-                           'name': self.elastic_type.name}}}
+        return wrapper
+
+    @_format
+    def get_collection(self):
+        return self.elastic_type.source.get_collection(self.elastic_type.name)
 
     def generate_elastic_mapping(self):
 
@@ -500,15 +492,62 @@ class PdfContext(GenericContext):
         return clean_my_obj(mapping)
 
 
-class FeatureContext(GenericContext):
+class WfsContext(GenericContext):
 
     def __init__(self, elastic_index, elastic_type):
 
-        if not elastic_type.__class__.__qualname__ == 'FeatureType':
-            raise TypeError("Argument should be an instance of 'FeatureType'.")
+        if not elastic_type.__class__.__qualname__ == 'WfsType':
+            raise TypeError("Argument should be an instance of 'WfsType'.")
 
         super().__init__(elastic_index, elastic_type)
+
+    def _format(f):
+
+        @wraps(f)
+        def wrapper(self, *args, **kwargs):
+
+            def alias(properties):
+                new = {}
+                for k, v in properties.items():
+                    prop = self.get_property(k)
+                    if prop.rejected:
+                        continue
+                    new[prop.alias or prop.name] = v
+                return new
+
+            for e in f(self, *args, **kwargs):
+                e['properties'].update(alias(e['properties']))
+                yield {'data': e,
+                       'origin': {
+                           'source': {
+                               'name': self.elastic_type.source.name,
+                               'uri': self.elastic_type.source.uri},
+                           'resource': {
+                               'name': self.elastic_type.name}}}
+
+        return wrapper
+
+    @_format
+    def get_collection(self, **opts):
+        return self.elastic_type.source.get_collection(
+                                            self.elastic_type.name, **opts)
 
     def generate_elastic_mapping(self):
         # TODO
         pass
+
+
+class Context:
+
+    def __new__(cls, elastic_index, elastic_type):
+
+        modes = {'PdfType': PdfContext,
+                 'WfsType': WfsContext}
+
+        cls = modes.get(elastic_type.__class__.__qualname__, False)
+        if not cls:
+            raise ValueError('Unrecognized mode.')
+
+        self = object.__new__(cls)
+        self.__init__(elastic_index, elastic_type)
+        return self

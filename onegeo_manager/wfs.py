@@ -61,10 +61,13 @@ class WfsMethod(metaclass=StaticClass):
         if self.authorized_requests(self, request_name):
             params['REQUEST'] = request_name
         else:
-            raise ValueError('Request value \'{0}\' not authorized.'.format(request_name))
+            raise ValueError('Request value \'{0}\' not authorized.'.format(
+                                                                request_name))
 
-        if 'VERSION' in params and not self.authorized_versions(self, params['VERSION']):
-            raise ValueError('Version value \'{0}\' not authorized.'.format(params['VERSION']))
+        if 'VERSION' in params and not self.authorized_versions(
+                                                    self, params['VERSION']):
+            raise ValueError('Version value \'{0}\' not authorized.'.format(
+                                                            params['VERSION']))
 
         async def fetch(_client, _url, **_params):
             with timeout(10):
@@ -79,7 +82,7 @@ class WfsMethod(metaclass=StaticClass):
                     elif s and s.group(2) == 'xml':
                         return await r.text()
                     else:  # TODO
-                        raise Exception('Error service response')
+                        raise Exception('Error service response.')
 
         async def main(_loop, _url, **_params):
             async with ClientSession(loop=_loop) as client:
