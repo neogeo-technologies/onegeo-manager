@@ -8,8 +8,7 @@ def clean_my_obj(obj):
     if isinstance(obj, (list, tuple, set)):
         return type(obj)(clean_my_obj(x) for x in obj if x is not None)
     elif isinstance(obj, dict):
-        return type(obj)((clean_my_obj(k), clean_my_obj(v))
-                    for k, v in obj.items() if k is not None and v is not None)
+        return type(obj)((clean_my_obj(k), clean_my_obj(v)) for k, v in obj.items() if k is not None and v is not None)
     else:
         return obj
 

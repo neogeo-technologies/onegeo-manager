@@ -1,7 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from base64 import b64encode
 from functools import wraps
-from PyPDF2 import PdfFileReader
 
 from .utils import clean_my_obj
 
@@ -544,7 +542,7 @@ class Context:
         modes = {'PdfType': PdfContext,
                  'WfsType': WfsContext}
 
-        cls = modes.get(elastic_type.__class__.__qualname__, False)
+        cls = modes.get(elastic_type.__class__.__qualname__, None)
         if not cls:
             raise ValueError('Unrecognized mode.')
 

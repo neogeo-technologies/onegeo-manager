@@ -27,7 +27,6 @@ def convert_response(f):
 
         if 'ExceptionReport' in res:
             report = res['ExceptionReport']
-            code = 'Unknown'
             if report['@version'] == '2.0.0':
                 code = report['Exception']['@exceptionCode']
             else:

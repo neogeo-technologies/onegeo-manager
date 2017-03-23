@@ -110,14 +110,14 @@ class WfsSource(GenericSource):
                                     version=self.capabilities['@version'])
 
         types = []
-        for e in iter([(m['@name'], m['@type'].split(':')[-1])
+        for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                        for m in desc['schema']['element']]):
 
-            ft = WfsType(self, e[0])
+            ft = WfsType(self, elt[0])
 
             t = None
             for complex_type in iter(desc['schema']['complexType']):
-                if complex_type['@name'] == e[1]:
+                if complex_type['@name'] == elt[1]:
                     t = complex_type
                     break
 
@@ -211,7 +211,7 @@ class Source:
         modes = {'pdf': PdfSource,
                  'wfs': WfsSource}
 
-        cls = modes.get(mode, False)
+        cls = modes.get(mode, None)
         if not cls:
             raise ValueError('Unrecognized mode.')
 
