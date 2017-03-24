@@ -63,7 +63,6 @@ class PdfSource(GenericSource):
             columns = {}
             t = PdfType(self, d.name)
             for p in self._iter_pdf_path():
-                print(p)
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
                     k = k[1:]
