@@ -2,7 +2,7 @@ from asyncio import get_event_loop
 from aiohttp import ClientSession
 from async_timeout import timeout
 from functools import wraps
-from neogeo_xml import XMLtoObj
+from neogeo_xml_utils import XMLtoObj
 from re import search
 from xml.etree.ElementTree import XMLParser
 

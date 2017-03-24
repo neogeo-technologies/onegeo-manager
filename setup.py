@@ -1,13 +1,13 @@
 from distutils.core import setup
 
 
-setup(name='onegeo_lib',
+setup(name='onegeo-manager',
       version='0.0.1',
       description='',
       long_description='',
       author='Neogeo Technologies',
-      author_email='contact@neogeo-technologies.fr',
-      url='https://github.com/neogeo-technologies/onegeo-lib',
+      author_email='contact@neogeo.fr',
+      url='https://github.com/neogeo-technologies/onegeo-manager',
       license="GPLv3",
       classifiers=[
               'Development Status :: Beta',
@@ -22,7 +22,7 @@ setup(name='onegeo_lib',
       install_requires=[
                 'aiohttp>=1.2.0',
                 'async_timeout>=1.1.0',
-                'neogeo_utils',
+                'neogeo_xml_utils==0.0.1',
                 'PyPDF2>=1.26.0'],
       dependency_links=[
-                'git+https://github.com/neogeo-technologies/neogeo_utils.git'])
+                'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git#egg=neogeo_xml_utils=0.0.1'])

@@ -1,1 +1,1 @@
-# onegeo_lib
+# onegeo-manager
