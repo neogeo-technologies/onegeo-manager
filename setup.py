@@ -25,4 +25,4 @@ setup(name='onegeo-manager',
                 'neogeo_xml_utils==0.0.1',
                 'PyPDF2>=1.26.0'],
       dependency_links=[
-                'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git#egg=neogeo_xml_utils=0.0.1'])
+                'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git#egg=neogeo_xml_utils-0.0.1'])
