@@ -7,7 +7,7 @@ from PyPDF2 import PdfFileReader
 
 from .wfs import WfsMethod
 from .type import WfsType, PdfType
-
+from .utils import from_camel_was_born_snake
 
 __all__ = ['Source', 'PdfSource', 'WfsSource']
 
@@ -60,7 +60,7 @@ class PdfSource(GenericSource):
         arr = []
         for subdir in self._iter_dir_path():
             columns = {}
-            t = PdfType(self, subdir.name)
+            t = PdfType(self, from_camel_was_born_snake(subdir.name))
             for p in self._iter_pdf_path(subdir.name):
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
@@ -120,7 +120,7 @@ class WfsSource(GenericSource):
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                        for m in desc['schema']['element']]):
 
-            ft = WfsType(self, elt[0])
+            ft = WfsType(self, from_camel_was_born_snake(elt[0]))
 
             t = None
             for complex_type in iter(desc['schema']['complexType']):

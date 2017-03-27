@@ -13,6 +13,14 @@ def clean_my_obj(obj):
         return obj
 
 
+def from_camel_was_born_snake(txt):
+
+    from re import sub
+
+    s1 = sub('(.)([A-Z][a-z]+)', '\g<1>_\g<2>', txt)
+    return sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>', s1).lower()
+
+
 class StaticClass(type):
 
     def __call__(cls):
