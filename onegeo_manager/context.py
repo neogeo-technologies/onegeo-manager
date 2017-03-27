@@ -4,7 +4,7 @@ from functools import wraps
 from .utils import clean_my_obj
 
 
-__all__ = ['Context', 'PdfContext', 'WfsContext']
+__all__ = ['Context']
 
 
 class PropertyColumn:

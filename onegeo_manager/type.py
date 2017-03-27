@@ -1,7 +1,7 @@
 from abc import ABCMeta
 
 
-__all__ = []
+__all__ = ['Type']
 
 
 class GenericType(metaclass=ABCMeta):
@@ -131,3 +131,19 @@ class WfsType(GenericType):
         if not self.authorized_geometry_type(t):
             raise Exception('\'{0}\' is not an authorized geometry type'.format(geom_type))
         self.geometry = t
+
+
+class Type:
+
+    def __new__(cls, source, name):
+
+        modes = {'PdfSource': PdfType,
+                 'WfsSource': WfsType}
+
+        cls = modes.get(source.__class__.__qualname__, None)
+        if not cls:
+            raise ValueError('Unrecognized mode.')
+
+        self = object.__new__(cls)
+        self.__init__(source, name)
+        return self
