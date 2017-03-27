@@ -17,7 +17,7 @@ class GenericSource(metaclass=ABCMeta):
     def __init__(self, uri, name):
         self.uri = uri
 
-        s = search('^[a-z0-9_]{3,30}$', name)
+        s = search('^[a-z0-9_]{2,30}$', name)
         if not s:
             raise ValueError("Malformed value for 'name'.")
         self.name = name
