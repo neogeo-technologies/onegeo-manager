@@ -268,7 +268,7 @@ class PdfContext(GenericContext):
 
         def wrapper(self, *args, **kwargs):
 
-            def alias(properties):
+            def set_aliases(properties):
                 new = {}
                 for k, v in properties.items():
                     prop = self.get_property(k)
@@ -278,9 +278,9 @@ class PdfContext(GenericContext):
                 return new
 
             for e in f(self, *args, **kwargs):
-                yield {'data': e.data,
-                       'filename': e.filename,
-                       'meta': alias(e.meta),
+                yield {'data': e['data'],
+                       'filename': e['filename'],
+                       'meta': set_aliases(e['meta']),
                        'origin': {
                            'source': {
                                'name': self.elastic_type.source.name,

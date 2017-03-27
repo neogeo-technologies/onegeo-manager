@@ -46,8 +46,8 @@ class PdfSource(GenericSource):
 
         super().__init__(self.__p.as_uri(), name)
 
-    def _iter_pdf_path(self):
-        return iter(list(self.__p.glob('**/*.pdf')))
+    def _iter_pdf_path(self, subdir_name):
+        return iter(list(self.__p.glob('{0}/**/*.pdf'.format(subdir_name))))
 
     def _iter_dir_path(self):
         subdirs = [sub for sub in self.__p.iterdir() if sub.is_dir()]
@@ -58,11 +58,10 @@ class PdfSource(GenericSource):
     def get_types(self):
 
         arr = []
-        for d in self._iter_dir_path():
-
+        for subdir in self._iter_dir_path():
             columns = {}
-            t = PdfType(self, d.name)
-            for p in self._iter_pdf_path():
+            t = PdfType(self, subdir.name)
+            for p in self._iter_pdf_path(subdir.name):
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
                     k = k[1:]
@@ -78,22 +77,31 @@ class PdfSource(GenericSource):
 
         return arr
 
-    def get_collection(self):
+    def get_collection(self, type_name):
 
-        def meta(pdf):
-            info = dict(pdf.getDocumentInfo())
-            copy = info.copy()
-            for k, v in info.items():
+        def format(meta):
+            copy = {}
+            for k, v in meta.items():
                 k = k[1:]
                 if k in self.META_FIELD:
-                    del copy[k]
+                    continue
+                copy[k] = v
             return copy
 
-        for path in self._iter_pdf_path():
+        target = None
+        for subdir in self._iter_dir_path():
+            if subdir.name == type_name:
+                target = subdir
+                break
+
+        if not target:
+            raise ValueError('{0} not found.'.format(type_name))
+
+        for path in self._iter_pdf_path(target.name):
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
-                   'meta': meta(PdfFileReader(f))}
+                   'meta': format(dict(PdfFileReader(f).getDocumentInfo()))}
 
 
 class WfsSource(GenericSource):
