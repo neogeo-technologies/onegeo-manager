@@ -1,3 +1,78 @@
+from re import search, sub
+
+
+# aiohttp stuffs
+
+async def aiohttp_fetcher(client, url, **params):
+
+    from async_timeout import timeout
+
+    with timeout(10):
+        async with client.get(url, **params) as r:
+            if not r.status == 200:
+                r.raise_for_status()
+
+            pattern = '^(text|application)\/((\w+)\+?)+\;?(\s?charset\=[\w\d\D]+)?$'
+            s = search(pattern, r.content_type)
+            if s and s.group(2) == 'json':
+                return await r.json()
+            elif s and s.group(2) == 'xml':
+                return await r.text()
+            else:
+                # TODO
+                raise Exception('Error service response.')
+
+
+async def aiohttp_client(loop, url, **params):
+
+    from aiohttp import ClientSession
+
+    async with ClientSession(loop=loop) as client:
+        return await aiohttp_fetcher(client, url, **params)
+
+
+def ows_response_converter(f):
+
+    from functools import wraps
+    from neogeo_xml_utils import XMLtoObj
+    from xml.etree.ElementTree import XMLParser
+
+    from .exception import OGCExceptionReport
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+
+        response = f(*args, **kwargs)
+
+        if not isinstance(response, str):
+            return response
+
+        target = XMLtoObj()
+        parser = XMLParser(target=target)
+        parser.feed(response)
+        res = parser.close()
+
+        if 'ExceptionReport' in res:
+            report = res['ExceptionReport']
+            if report['@version'] == '2.0.0':
+                code = report['Exception']['@exceptionCode']
+            else:
+                code = report['Exception']['@exceptionCode']
+
+            raise OGCExceptionReport(
+                        code, report['Exception']['ExceptionText'])
+
+        return res
+    return wrapper
+
+
+def execute_aiohttp_get(url, **params):
+    from asyncio import get_event_loop as loop
+    return loop().run_until_complete(aiohttp_client(loop(), url, params=params))
+
+
+# Cool stuffs
+
 def clean_my_dict(d):
     if not isinstance(d, dict):
         raise TypeError('Argument should be an instance of dict')
@@ -14,12 +89,11 @@ def clean_my_obj(obj):
 
 
 def from_camel_was_born_snake(txt):
-
-    from re import sub
-
     s1 = sub('(.)([A-Z][a-z]+)', '\g<1>_\g<2>', txt)
     return sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>', s1).lower()
 
+
+# Class types
 
 class StaticClass(type):
 

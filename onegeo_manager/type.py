@@ -88,6 +88,12 @@ class GenericType(metaclass=ABCMeta):
         return name in self.iter_column_name() and True or False
 
 
+class CswType(GenericType):
+
+    def __init__(self, source, name):
+        super().__init__(source, name)
+
+
 class PdfType(GenericType):
 
     def __init__(self, source, name):
@@ -137,7 +143,9 @@ class Type:
 
     def __new__(cls, source, name):
 
-        modes = {'PdfSource': PdfType,
+        modes = {'CswSource': CswType,
+                 'CswSearchApiSource': CswType,
+                 'PdfSource': PdfType,
                  'WfsSource': WfsType}
 
         cls = modes.get(source.__class__.__qualname__, None)

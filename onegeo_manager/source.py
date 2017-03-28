@@ -5,9 +5,10 @@ from re import search
 
 from PyPDF2 import PdfFileReader
 
-from .wfs import WfsMethod
+from .ogc import CswMethod, CswSearchApiMethod, WfsMethod
 from .type import Type
-from .utils import from_camel_was_born_snake
+from .utils import from_camel_was_born_snake, ows_response_converter
+
 
 __all__ = ['Source']
 
@@ -31,6 +32,94 @@ class GenericSource(metaclass=ABCMeta):
     def get_collection(self, *args, **kwargs):
         raise NotImplementedError("This is an abstract method. "
                                   "You can't do anything with it.")
+
+
+class CswSource(GenericSource):
+
+    def __init__(self, url, name):
+        super().__init__(url, name)
+
+        self.capabilities = self.__get_capabilities()['Capabilities']
+
+    def get_types(self):
+        return [Type(self, 'dataset'),
+                Type(self, 'nonGeographicDataset'),
+                Type(self, 'series')]
+
+    def get_collection(self, typename='dataset', count=100):
+
+        total = 0
+
+        params = {'VERSION': self.capabilities['@version']}
+
+        if params['VERSION'] != '2.0.2':
+            raise NotImplemented(
+                    'Version {0} not implemented.'.format(params['VERSION']))
+
+        params.update({
+            # 'CONSTRAINT': "type LIKE '{0}'".format(typename),
+            'CONSTRAINT_LANGUAGE_VERSION': '1.0.0',
+            'CONSTRAINTLANGUAGE': 'CQL_TEXT',
+            'ELEMENTSETNAME': 'full',
+            'MAXRECORDS': count,
+            'OUTPUTSCHEMA': 'http://www.opengis.net/cat/csw/2.0.2',
+            'RESULTTYPE': 'results',
+            'STARTPOSITION': 1,
+            'TYPE': 'dataset',
+            'TYPENAMES': 'gmd:MD_Metadata'}) # gmd:MD_Metadata, csw:Record
+
+        while True:
+            data = self.__get_records(**params)['GetRecordsResponse']['SearchResults']['Record']
+            yield from data
+            if len(data) < count:
+                break
+            params['STARTPOSITION'] += count
+
+    @ows_response_converter
+    def __get_capabilities(self, **params):
+        return CswMethod.get_capabilities(self.uri, **params)
+
+    @ows_response_converter
+    def __get_records(self, **params):
+        return CswMethod.get_records(self.uri, **params)
+
+
+class CswSearchApiSource(GenericSource):
+
+    def __init__(self, url, name):
+        super().__init__(url, name)
+
+        params = {'from': 0, 'to': 0, 'fast': 'true'}
+        self.summary = self.__search(**params)['response']['summary']
+
+    def get_types(self):
+
+        types = []
+        for entry in self.summary['types']['type']:
+            type = Type(self, entry['@name'])
+
+            types.append(type)
+
+        return types
+
+    def get_collection(self, typename, count=100):
+
+        params = {'fast': 'false',
+                  'from': 1,
+                  'to': count,
+                  'type': typename}
+
+        while True:
+            data = self.__search(**params)['response']['metadata']
+            yield from data
+            if len(data) < count:
+                break
+            params['from'] += count
+            params['to'] += count
+
+    @ows_response_converter
+    def __search(self, **params):
+        return CswSearchApiMethod.search(self.uri, **params)
 
 
 class PdfSource(GenericSource):
@@ -149,64 +238,63 @@ class WfsSource(GenericSource):
         :param count: Le pas de pagination du GetFeature (opt).
         :return: Un générateur contenant des GeoJSON.
         """
-        features = []
 
-        def find_ft_meta(ft_name):
+        def retreive_ft_meta(ft_name):
             for f in iter(self.capabilities['FeatureTypeList']['FeatureType']):
                 if f['Name'].split(':')[-1] == ft_name:
                     return f
             raise ValueError('{0} not found.'.format(ft_name))
 
-        capacity = find_ft_meta(typename)
+        capacity = retreive_ft_meta(typename)
 
         params = {'VERSION': self.capabilities['@version']}
 
-        if params['VERSION'] == '2.0.0':
-
-            crs_str = ','.join(capacity['OtherCRS'] + [capacity['DefaultCRS']])
-            format_str = ','.join(capacity['OutputFormats']['Format'])
-
-            testing = {
-                'SRSNAME': {
-                    'pattern': '((^|((\w*\:+)+))4326)',
-                    'string': crs_str},
-                'OUTPUTFORMAT': {
-                    'pattern': '((text|application)\/json\;?\s?subtype\=geojson)',
-                    'string': format_str}}
-
-            for k, v in testing.items():
-                s = search(v['pattern'], v['string'])
-                if not s:
-                    raise ValueError('TODO')  # TODO
-                params[k] = s.group(0)
-
-            params.update({'TYPENAMES': typename,
-                           'STARTINDEX': 0,
-                           'COUNT': count})
-
-            # C'est très moche mais c'est pour contourner un bug(?) de 'aiohttp'
-            params['OUTPUTFORMAT'] = 'geojson'
-
-            while True:
-                # Boucle sur le GetFeature tant que tous
-                # les objets ne sont pas recupérés.
-                res = self.__get_feature(**params)
-                features += res['features']
-                if len(res['features']) < count:
-                    break
-                params['STARTINDEX'] += count
-                yield from features
-
-        else:
+        if params['VERSION'] != '2.0.0':
             raise NotImplemented(
                     'Version {0} not implemented.'.format(params['VERSION']))
 
+        crs_str = ','.join(capacity['OtherCRS'] + [capacity['DefaultCRS']])
+        format_str = ','.join(capacity['OutputFormats']['Format'])
+
+        testing = {
+            'SRSNAME': {
+                'pattern': '((^|((\w*\:+)+))4326)',
+                'string': crs_str},
+            'OUTPUTFORMAT': {
+                'pattern': '((text|application)\/json\;?\s?subtype\=geojson)',
+                'string': format_str}}
+
+        for k, v in testing.items():
+            s = search(v['pattern'], v['string'])
+            if not s:
+                raise ValueError('TODO')  # TODO
+            params[k] = s.group(0)
+
+        params.update({'TYPENAMES': typename,
+                       'STARTINDEX': 0,
+                       'COUNT': count})
+
+        # C'est très moche mais c'est pour contourner un bug(?) de 'aiohttp'
+        params['OUTPUTFORMAT'] = 'geojson'
+
+        while True:
+            # Boucle sur le GetFeature tant que tous
+            # les objets ne sont pas recupérés.
+            data = self.__get_feature(**params)['features']
+            yield from data
+            if len(data) < count:
+                break
+            params['STARTINDEX'] += count
+
+    @ows_response_converter
     def __get_capabilities(self, **params):
         return WfsMethod.get_capabilities(self.uri, **params)
 
+    @ows_response_converter
     def __describe_feature_type(self, **params):
         return WfsMethod.describe_feature_type(self.uri, **params)
 
+    @ows_response_converter
     def __get_feature(self, **params):
         return WfsMethod.get_feature(self.uri, **params)
 
@@ -215,7 +303,9 @@ class Source:
 
     def __new__(cls, uri, name, mode):
 
-        modes = {'pdf': PdfSource,
+        modes = {'csw': CswSource,
+                 'csw_search': CswSearchApiSource,
+                 'pdf': PdfSource,
                  'wfs': WfsSource}
 
         cls = modes.get(mode, None)
