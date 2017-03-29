@@ -44,7 +44,8 @@ class CswSource(GenericSource):
     def get_types(self):
         return [Type(self, 'dataset'),
                 Type(self, 'nonGeographicDataset'),
-                Type(self, 'series')]
+                Type(self, 'series'),
+                Type(self, 'service')]
 
     def get_collection(self, typename='dataset', count=100):
 
@@ -57,15 +58,14 @@ class CswSource(GenericSource):
                     'Version {0} not implemented.'.format(params['VERSION']))
 
         params.update({
-            # 'CONSTRAINT': "type LIKE '{0}'".format(typename),
+            'CONSTRAINT': "type LIKE '{0}'".format(typename),
             'CONSTRAINT_LANGUAGE_VERSION': '1.0.0',
             'CONSTRAINTLANGUAGE': 'CQL_TEXT',
             'ELEMENTSETNAME': 'full',
             'MAXRECORDS': count,
-            'OUTPUTSCHEMA': 'http://www.opengis.net/cat/csw/2.0.2',
+            'OUTPUTSCHEMA': 'http://www.isotc211.org/2005/gmd',
             'RESULTTYPE': 'results',
             'STARTPOSITION': 1,
-            'TYPE': 'dataset',
             'TYPENAMES': 'gmd:MD_Metadata'}) # gmd:MD_Metadata, csw:Record
 
         while True:
@@ -89,7 +89,7 @@ class CswSearchApiSource(GenericSource):
     def __init__(self, url, name):
         super().__init__(url, name)
 
-        params = {'from': 0, 'to': 0, 'fast': 'true'}
+        params = {'fast': 'true', 'from': 0, 'to': 0}
         self.summary = self.__search(**params)['response']['summary']
 
     def get_types(self):
@@ -98,16 +98,19 @@ class CswSearchApiSource(GenericSource):
         for entry in self.summary['types']['type']:
             type = Type(self, entry['@name'])
 
+            type.add_column('identifier', column_type='keyword')
+            type.add_column('title', column_type='keyword')
+            type.add_column('abstract', column_type='text')
+            type.add_column('keyword', column_type='keyword')
+            type.add_column('subject', column_type='keyword')
+            type.add_column('geonet', column_type='object', occurs=(1, 1))
             types.append(type)
 
         return types
 
     def get_collection(self, typename, count=100):
 
-        params = {'fast': 'false',
-                  'from': 1,
-                  'to': count,
-                  'type': typename}
+        params = {'fast': 'false', 'from': 1, 'to': count, 'type': typename}
 
         while True:
             data = self.__search(**params)['response']['metadata']

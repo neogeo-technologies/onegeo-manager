@@ -93,6 +93,9 @@ class CswType(GenericType):
     def __init__(self, source, name):
         super().__init__(source, name)
 
+    def authorized_column_type(self, val):
+        return val in self.COLUMN_TYPE + ['object']
+
 
 class PdfType(GenericType):
 
