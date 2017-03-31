@@ -49,8 +49,6 @@ class CswSource(GenericSource):
 
     def get_collection(self, typename='dataset', count=100):
 
-        total = 0
-
         params = {'VERSION': self.capabilities['@version']}
 
         if params['VERSION'] != '2.0.2':
@@ -66,7 +64,7 @@ class CswSource(GenericSource):
             'OUTPUTSCHEMA': 'http://www.isotc211.org/2005/gmd',
             'RESULTTYPE': 'results',
             'STARTPOSITION': 1,
-            'TYPENAMES': 'gmd:MD_Metadata'}) # gmd:MD_Metadata, csw:Record
+            'TYPENAMES': 'csw:Record'}) # gmd:MD_Metadata, csw:Record
 
         while True:
             data = self.__get_records(**params)['GetRecordsResponse']['SearchResults']['Record']
@@ -93,19 +91,16 @@ class CswSearchApiSource(GenericSource):
         self.summary = self.__search(**params)['response']['summary']
 
     def get_types(self):
-
         types = []
         for entry in self.summary['types']['type']:
             type = Type(self, entry['@name'])
-
             type.add_column('identifier', column_type='keyword')
             type.add_column('title', column_type='keyword')
             type.add_column('abstract', column_type='text')
             type.add_column('keyword', column_type='keyword')
             type.add_column('subject', column_type='keyword')
-            type.add_column('geonet', column_type='object', occurs=(1, 1))
+            type.add_column('info', column_type='object', occurs=(1, 1))
             types.append(type)
-
         return types
 
     def get_collection(self, typename, count=100):

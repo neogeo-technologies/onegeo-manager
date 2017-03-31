@@ -1,5 +1,7 @@
 from .utils import execute_aiohttp_get, StaticClass
 
+from .utils import execute_http_get
+
 
 class CswMethod(metaclass=StaticClass):
 
@@ -29,7 +31,8 @@ class CswMethod(metaclass=StaticClass):
             raise ValueError('Version value \'{0}\' not authorized.'.format(
                                                             params['VERSION']))
 
-        return execute_aiohttp_get(url, **params)
+        # return execute_aiohttp_get(url, **params)
+        return execute_http_get(url, **params)
 
     @classmethod
     def get_capabilities(cls, url, **params):
@@ -44,7 +47,8 @@ class CswSearchApiMethod(metaclass=StaticClass):
 
     @staticmethod
     def get(self, url, **params):
-        return execute_aiohttp_get(url, **params)
+        # return execute_aiohttp_get(url, **params)
+        return execute_http_get(url, **params)
 
     @classmethod
     def search(cls, url, **params):
@@ -79,7 +83,8 @@ class WfsMethod(metaclass=StaticClass):
             raise ValueError('Version value \'{0}\' not authorized.'.format(
                                                             params['VERSION']))
 
-        return execute_aiohttp_get(url, **params)
+        # return execute_aiohttp_get(url, **params)
+        return execute_http_get(url, **params)
 
     @classmethod
     def get_capabilities(cls, url, **params):
