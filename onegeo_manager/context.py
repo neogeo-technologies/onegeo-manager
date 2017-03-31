@@ -410,7 +410,8 @@ class GeonetContext(AbstractContext):
                 'data': {
                     'dynamic': False,
                     'enabled': False,
-                    'include_in_all': False},
+                    'include_in_all': False,
+                    'type': 'object'},
                 'origin': {
                     'properties': {
                         'source': {
