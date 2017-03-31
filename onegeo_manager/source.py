@@ -5,7 +5,7 @@ from re import search
 
 from PyPDF2 import PdfFileReader
 
-from .ogc import CswMethod, CswSearchApiMethod, WfsMethod
+from .ogc import CswMethod, GeonetMethod, WfsMethod
 from .type import Type
 from .utils import from_camel_was_born_snake, ows_response_converter
 
@@ -82,7 +82,7 @@ class CswSource(GenericSource):
         return CswMethod.get_records(self.uri, **params)
 
 
-class CswSearchApiSource(GenericSource):
+class GeonetSource(GenericSource):
 
     def __init__(self, url, name):
         super().__init__(url, name)
@@ -117,7 +117,7 @@ class CswSearchApiSource(GenericSource):
 
     @ows_response_converter
     def __search(self, **params):
-        return CswSearchApiMethod.search(self.uri, **params)
+        return GeonetMethod.search(self.uri, **params)
 
 
 class PdfSource(GenericSource):
@@ -207,7 +207,7 @@ class WfsSource(GenericSource):
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                        for m in desc['schema']['element']]):
 
-            ft = Type(self, from_camel_was_born_snake(elt[0]))
+            ft = Type(self, elt[0])
 
             t = None
             for complex_type in iter(desc['schema']['complexType']):
@@ -302,7 +302,7 @@ class Source:
     def __new__(cls, uri, name, mode):
 
         modes = {'csw': CswSource,
-                 'csw_search': CswSearchApiSource,
+                 'geonet': GeonetSource,
                  'pdf': PdfSource,
                  'wfs': WfsSource}
 

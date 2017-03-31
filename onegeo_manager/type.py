@@ -147,7 +147,7 @@ class Type:
     def __new__(cls, source, name):
 
         modes = {'CswSource': CswType,
-                 'CswSearchApiSource': CswType,
+                 'GeonetSource': CswType,
                  'PdfSource': PdfType,
                  'WfsSource': WfsType}
 

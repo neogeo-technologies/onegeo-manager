@@ -43,7 +43,7 @@ class CswMethod(metaclass=StaticClass):
         return cls.get(cls, 'GetRecords', url, **params)
 
 
-class CswSearchApiMethod(metaclass=StaticClass):
+class GeonetMethod(metaclass=StaticClass):
 
     @staticmethod
     def get(self, url, **params):
