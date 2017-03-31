@@ -94,12 +94,9 @@ class GeonetSource(AbstractSource):
         types = []
         for entry in self.summary['types']['type']:
             type = Type(self, entry['@name'])
-            type.add_column('identifier', column_type='keyword')
             type.add_column('title', column_type='keyword')
             type.add_column('abstract', column_type='text')
             type.add_column('keyword', column_type='keyword')
-            type.add_column('subject', column_type='keyword')
-            type.add_column('info', column_type='object', occurs=(1, 1))
             types.append(type)
         return types
 

@@ -374,13 +374,10 @@ class GeonetContext(AbstractContext):
         def wrapper(self, *args, **kwargs):
             for e in f(self, *args, **kwargs):
 
+                meta = dict((p.name, e[p.name]) for p in self.iter_properties())
                 uri = '{0}.metadata.get?uuid={1}'.format(
                             self.elastic_type.source.uri.split('.search')[0],
                             e['info']['uuid'])
-
-                meta = {}
-                for property in self.iter_properties():
-                    meta.update({property.name: [property.name]})
 
                 yield {'data': e,
                        'meta': meta,
