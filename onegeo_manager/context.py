@@ -655,8 +655,83 @@ class WfsContext(AbstractContext):
                                             self.elastic_type.name, **opts)
 
     def generate_elastic_mapping(self):
-        # TODO
-        pass
+
+        analyzer = self.elastic_index.analyzer
+        search_analyzer = self.elastic_index.search_analyzer
+
+        type_name = self.elastic_type.name
+
+        mapping = {type_name: {
+            'properties': {
+                'data': {
+                    'properties': {
+                        'geometry': {   # TODO
+                            'dynamic': False,
+                            'enabled': False,
+                            'include_in_all': False,
+                            'type': 'object'},
+                        'type': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'}}},
+                'origin': {
+                    'properties': {
+                        'source': {
+                            'properties': {
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'uri': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'mode': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}},
+                        'resource': {
+                            'properties': {
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}}}}}}}
+
+        if self.tags:
+            mapping[type_name]['properties']['tags'] = {
+                    'analyzer': analyzer,
+                    'boost': 1.0,
+                    # 'doc_value'
+                    # 'eager_global_ordinals'
+                    # 'fields'
+                    # 'ignore_above'
+                    # 'include_in_all'
+                    'index': True,
+                    'index_options': 'docs',
+                    'norms': True,
+                    # 'null_value'
+                    'store': False,
+                    'search_analyzer': search_analyzer,
+                    'similarity': 'classic',
+                    'term_vector': 'yes',
+                    'type': 'keyword'}
+
+        props = {}
+        for p in self.iter_properties():
+            if p.rejected:
+                continue
+            props[p.alias or p.name] = fetch_mapping(p)
+
+        if props:
+            mapping[type_name]['properties']['data']['properties'] = {
+                                                            'properties': props}
+
+        return clean_my_obj(mapping)
 
 
 class Context:
