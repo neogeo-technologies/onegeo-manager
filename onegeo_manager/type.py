@@ -4,7 +4,7 @@ from abc import ABCMeta
 __all__ = ['Type']
 
 
-class GenericType(metaclass=ABCMeta):
+class AbstractType(metaclass=ABCMeta):
 
     COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
                    'double', 'double_range', 'float', 'float_range',
@@ -88,7 +88,7 @@ class GenericType(metaclass=ABCMeta):
         return name in self.iter_column_name() and True or False
 
 
-class CswType(GenericType):
+class CswType(AbstractType):
 
     def __init__(self, source, name):
         super().__init__(source, name)
@@ -97,7 +97,16 @@ class CswType(GenericType):
         return val in self.COLUMN_TYPE + ['object']
 
 
-class PdfType(GenericType):
+class GeonetType(AbstractType):
+
+    def __init__(self, source, name):
+        super().__init__(source, name)
+
+    def authorized_column_type(self, val):
+        return val in self.COLUMN_TYPE + ['object']
+
+
+class PdfType(AbstractType):
 
     def __init__(self, source, name):
         super().__init__(source, name)
@@ -107,7 +116,7 @@ class PdfType(GenericType):
         return val in self.COLUMN_TYPE + ['pdf']
 
 
-class WfsType(GenericType):
+class WfsType(AbstractType):
 
     COLUMN_TYPE = ['boolean', 'date', 'double', 'integer', 'string']
 
@@ -147,7 +156,7 @@ class Type:
     def __new__(cls, source, name):
 
         modes = {'CswSource': CswType,
-                 'GeonetSource': CswType,
+                 'GeonetSource': GeonetType,
                  'PdfSource': PdfType,
                  'WfsSource': WfsType}
 

@@ -13,7 +13,7 @@ from .utils import from_camel_was_born_snake, ows_response_converter
 __all__ = ['Source']
 
 
-class GenericSource(metaclass=ABCMeta):
+class AbstractSource(metaclass=ABCMeta):
 
     def __init__(self, uri, name):
         self.uri = uri
@@ -34,7 +34,7 @@ class GenericSource(metaclass=ABCMeta):
                                   "You can't do anything with it.")
 
 
-class CswSource(GenericSource):
+class CswSource(AbstractSource):
 
     def __init__(self, url, name):
         super().__init__(url, name)
@@ -82,7 +82,7 @@ class CswSource(GenericSource):
         return CswMethod.get_records(self.uri, **params)
 
 
-class GeonetSource(GenericSource):
+class GeonetSource(AbstractSource):
 
     def __init__(self, url, name):
         super().__init__(url, name)
@@ -120,7 +120,7 @@ class GeonetSource(GenericSource):
         return GeonetMethod.search(self.uri, **params)
 
 
-class PdfSource(GenericSource):
+class PdfSource(AbstractSource):
 
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
@@ -191,7 +191,7 @@ class PdfSource(GenericSource):
                    'meta': format(dict(PdfFileReader(f).getDocumentInfo()))}
 
 
-class WfsSource(GenericSource):
+class WfsSource(AbstractSource):
 
     def __init__(self, url, name):
         super().__init__(url, name)

@@ -7,6 +7,104 @@ from .utils import clean_my_obj
 __all__ = ['Context']
 
 
+def fetch_mapping(p):
+
+    if not p.searchable:
+        return {
+            'include_in_all': False,
+            'index': 'not_analyzed',
+            'store': False,
+            'type': p.column_type}
+
+    if p.column_type == 'text':
+        return {
+            'analyzer': p.analyzer,
+            'boost': p.weight,
+            # 'eager_global_ordinals'
+            # 'fielddata'
+            # 'fielddata_frequency_filter'
+            'fields': {
+                'keyword': {
+                    'index': 'not_analyzed',
+                    'type': 'keyword',
+                    'store': False}},
+            'include_in_all': False,
+            'index': True,
+            'index_options': 'offsets',
+            'norms': True,
+            'position_increment_gap': 100,
+            'store': False,
+            'search_analyzer': p.search_analyzer,
+            # 'search_quote_analyzer'
+            'similarity': 'classic',
+            'term_vector': 'yes',
+            'type': p.column_type}
+
+    if p.column_type == 'keyword':
+        return {
+            'analyzer': p.analyzer,
+            'boost': p.weight,
+            # 'doc_value'
+            # 'eager_global_ordinals'
+            # 'fields'
+            # 'ignore_above'
+            'include_in_all': False,
+            'index': True,
+            'index_options': 'docs',
+            'norms': True,
+            # 'null_value'
+            'store': False,
+            'search_analyzer': p.search_analyzer,
+            'similarity': 'classic',
+            'type': p.column_type}
+
+    if p.column_type in ('byte', 'double', 'double_range',
+                  'float', 'float_range', 'half_float',
+                  'integer', 'integer_range', 'long',
+                  'long_range', 'scaled_float', 'short'):
+        return {
+            'coerce': True,
+            'boost': p.weight,
+            'doc_values': True,
+            'ignore_malformed': True,
+            'include_in_all': False,
+            'index': True,
+            # 'null_value'
+            'store': False,
+            'type': p.column_type}
+
+        # if p.type == 'scaled_float':
+        #     props[p.name]['scaling_factor'] = 10
+
+    if p.column_type in ('date', 'date_range'):
+        return {
+            'boost': p.weight,
+            'doc_values': True,
+            'format': p.pattern,
+            # 'locale'
+            'ignore_malformed': True,
+            'include_in_all': False,
+            'index': True,
+            # 'null_value'
+            'store': False,
+            'type': p.column_type}
+
+    if p.column_type == 'boolean':
+        return {
+            'boost': p.weight,
+            'doc_values': True,
+            'index': True,
+            # 'null_value'
+            'store': False,
+            'type': p.column_type}
+
+    if p.column_type == 'binary':
+        return {
+            'doc_values': True,
+            'store': False,
+            'type': p.column_type}
+
+
 class PropertyColumn:
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
@@ -140,7 +238,7 @@ class PropertyColumn:
                 'search_analyzer': self.search_analyzer}
 
 
-class GenericContext(metaclass=ABCMeta):
+class AbstractContext(metaclass=ABCMeta):
 
     def __init__(self, elastic_index, elastic_type):
 
@@ -181,7 +279,8 @@ class GenericContext(metaclass=ABCMeta):
 
     def set_property(self, p):
         if not p.__class__.__qualname__ == 'PropertyColumn':
-            raise TypeError("Argument should be an instance of 'PropertyColumn'.")
+            raise TypeError(
+                        "Argument should be an instance of 'PropertyColumn'.")
         self.__properties.append(p)
 
     def iter_properties(self):
@@ -250,7 +349,132 @@ class GenericContext(metaclass=ABCMeta):
                                   "You can't do anything with it.")
 
 
-class PdfContext(GenericContext):
+class CswContext(AbstractContext):
+
+    def __init__(self, elastic_index, elastic_type):
+
+        if not elastic_type.__class__.__qualname__ == 'CswType':
+            raise TypeError("Argument should be an instance of 'CswType'.")
+
+        super().__init__(elastic_index, elastic_type)
+
+
+class GeonetContext(AbstractContext):
+
+    def __init__(self, elastic_index, elastic_type):
+
+        if not elastic_type.__class__.__qualname__ == 'GeonetType':
+            raise TypeError("Argument should be an instance of 'GeonetType'.")
+
+        super().__init__(elastic_index, elastic_type)
+
+    def _format(f):
+
+        @wraps(f)
+        def wrapper(self, *args, **kwargs):
+            for e in f(self, *args, **kwargs):
+
+                uri = '{0}.metadata.get?uuid={1}'.format(
+                            self.elastic_type.source.uri.split('.search')[0],
+                            e['info']['uuid'])
+
+                meta = {}
+                for property in self.iter_properties():
+                    meta.update({property.name: [property.name]})
+
+                yield {'data': e,
+                       'meta': meta,
+                       'origin': {
+                           'source': {
+                               'name': self.elastic_type.source.name,
+                               'uri': self.elastic_type.source.uri},
+                           'resource': {
+                               'name': self.elastic_type.name}},
+                       'uri': uri}
+
+        return wrapper
+
+    @_format
+    def get_collection(self):
+        return self.elastic_type.source.get_collection(self.elastic_type.name)
+
+    def generate_elastic_mapping(self):
+
+        analyzer = self.elastic_index.analyzer
+        search_analyzer = self.elastic_index.search_analyzer
+
+        type_name = self.elastic_type.name
+
+        mapping = {type_name: {
+            'properties': {
+                'data': {
+                    'dynamic': False,
+                    'enabled': False,
+                    'include_in_all': False},
+                'origin': {
+                    'properties': {
+                        'source': {
+                            'properties': {
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'uri': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'mode': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}},
+                        'resource': {
+                            'properties': {
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}}}},
+                'uri': {
+                    'include_in_all': False,
+                    'index': 'not_analyzed',
+                    'store': False,
+                    'type': 'keyword'}}}}
+
+        if self.tags:
+            mapping[type_name]['properties']['tags'] = {
+                    'analyzer': analyzer,
+                    'boost': 1.0,
+                    # 'doc_value'
+                    # 'eager_global_ordinals'
+                    # 'fields'
+                    # 'ignore_above'
+                    # 'include_in_all'
+                    'index': True,
+                    'index_options': 'docs',
+                    'norms': True,
+                    # 'null_value'
+                    'store': False,
+                    'search_analyzer': search_analyzer,
+                    'similarity': 'classic',
+                    'term_vector': 'yes',
+                    'type': 'keyword'}
+
+        props = {}
+        for p in self.iter_properties():
+            if p.rejected:
+                continue
+            props[p.alias or p.name] = fetch_mapping(p)
+
+        if props:
+            mapping[type_name]['properties']['meta'] = {'properties': props}
+
+        return clean_my_obj(mapping)
+
+
+class PdfContext(AbstractContext):
 
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
@@ -265,7 +489,6 @@ class PdfContext(GenericContext):
     def _format(f):
 
         @wraps(f)
-
         def wrapper(self, *args, **kwargs):
 
             def set_aliases(properties):
@@ -330,10 +553,7 @@ class PdfContext(GenericContext):
         props = {}
         for p in self.iter_properties():
 
-            p_name = p.alias or p.name
-            p_type = p.column_type
-
-            if p_type == 'pdf':
+            if p.column_type == 'pdf':
                 mapping[type_name]['properties']['attachment'] = {
                     'properties': {
                         'data': {
@@ -362,101 +582,7 @@ class PdfContext(GenericContext):
             if p.rejected:
                 continue
 
-            if not p.searchable:
-                props[p_name] = {
-                    'include_in_all': False,
-                    'index': 'not_analyzed',
-                    'store': False,
-                    'type': p_type}
-                continue
-
-            if p_type == 'text':
-                props[p_name] = {
-                    'analyzer': p.analyzer,
-                    'boost': p.weight,
-                    # 'eager_global_ordinals'
-                    # 'fielddata'
-                    # 'fielddata_frequency_filter'
-                    'fields': {
-                        'keyword': {
-                            'index': 'not_analyzed',
-                            'type': 'keyword',
-                            'store': False}},
-                    'include_in_all': False,
-                    'index': True,
-                    'index_options': 'offsets',
-                    'norms': True,
-                    'position_increment_gap': 100,
-                    'store': False,
-                    'search_analyzer': p.search_analyzer,
-                    # 'search_quote_analyzer'
-                    'similarity': 'classic',
-                    'term_vector': 'yes',
-                    'type': p_type}
-
-            if p_type == 'keyword':
-                props[p_name] = {
-                    'analyzer': p.analyzer,
-                    'boost': p.weight,
-                    # 'doc_value'
-                    # 'eager_global_ordinals'
-                    # 'fields'
-                    # 'ignore_above'
-                    'include_in_all': False,
-                    'index': True,
-                    'index_options': 'docs',
-                    'norms': True,
-                    # 'null_value'
-                    'store': False,
-                    'search_analyzer': p.search_analyzer,
-                    'similarity': 'classic',
-                    'type': p_type}
-
-            if p_type in ('byte', 'double', 'double_range',
-                          'float', 'float_range', 'half_float',
-                          'integer', 'integer_range', 'long',
-                          'long_range', 'scaled_float', 'short'):
-                props[p_name] = {
-                    'coerce': True,
-                    'boost': p.weight,
-                    'doc_values': True,
-                    'ignore_malformed': True,
-                    'include_in_all': False,
-                    'index': True,
-                    # 'null_value'
-                    'store': False,
-                    'type': p_type}
-
-                # if p.type == 'scaled_float':
-                #     props[p.name]['scaling_factor'] = 10
-
-            if p_type in ('date', 'date_range'):
-                props[p_name] = {
-                    'boost': p.weight,
-                    'doc_values': True,
-                    'format': p.pattern,
-                    # 'locale'
-                    'ignore_malformed': True,
-                    'include_in_all': False,
-                    'index': True,
-                    # 'null_value'
-                    'store': False,
-                    'type': p_type}
-
-            if p_type == 'boolean':
-                props[p_name] = {
-                    'boost': p.weight,
-                    'doc_values': True,
-                    'index': True,
-                    # 'null_value'
-                    'store': False,
-                    'type': p_type}
-
-            if p_type == 'binary':
-                props[p_name] = {
-                    'doc_values': True,
-                    'store': False,
-                    'type': p_type}
+            props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
             mapping[type_name]['properties']['meta'] = {'properties': props}
@@ -490,7 +616,7 @@ class PdfContext(GenericContext):
         return clean_my_obj(mapping)
 
 
-class WfsContext(GenericContext):
+class WfsContext(AbstractContext):
 
     def __init__(self, elastic_index, elastic_type):
 
@@ -539,7 +665,9 @@ class Context:
 
     def __new__(cls, elastic_index, elastic_type):
 
-        modes = {'PdfType': PdfContext,
+        modes = {'CswType': CswContext,
+                 'GeonetType': GeonetContext,
+                 'PdfType': PdfContext,
                  'WfsType': WfsContext}
 
         cls = modes.get(elastic_type.__class__.__qualname__, None)
