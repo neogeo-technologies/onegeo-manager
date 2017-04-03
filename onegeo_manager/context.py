@@ -646,7 +646,7 @@ class WfsContext(AbstractContext):
                 return new
 
             for e in f(self, *args, **kwargs):
-                e['properties'].update(alias(e['properties']))
+                e['properties']= alias(e['properties'])
                 yield {'data': e,
                        'origin': {
                            'source': {
