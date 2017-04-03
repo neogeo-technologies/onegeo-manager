@@ -113,6 +113,10 @@ def from_camel_was_born_snake(txt):
     return sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>', s1).lower()
 
 
+def only_word_character(txt):
+    # TODO
+    return txt.replace('.', '__')
+
 # Class types
 
 class StaticClass(type):

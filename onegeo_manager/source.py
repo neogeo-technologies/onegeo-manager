@@ -202,7 +202,7 @@ class WfsSource(AbstractSource):
 
         types = []
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
-                       for m in desc['schema']['element']]):
+                                        for m in desc['schema']['element']]):
 
             ft = Type(self, elt[0])
 
@@ -211,7 +211,7 @@ class WfsSource(AbstractSource):
                 if complex_type['@name'] == elt[1]:
                     t = complex_type
                     break
-
+            #   p
             for e in t['complexContent']['extension']['sequence']['element']:
                 n = '@name' in e and str(e['@name']) or None
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None

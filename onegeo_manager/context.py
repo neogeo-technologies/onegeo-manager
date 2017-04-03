@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 
-from .utils import clean_my_obj
+from .utils import clean_my_obj, only_word_character
 
 
 __all__ = ['Context']
@@ -410,7 +410,7 @@ class GeonetContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = self.elastic_type.name
+        type_name = only_word_character(self.elastic_type.name)
 
         mapping = {type_name: {
             'properties': {
@@ -530,7 +530,7 @@ class PdfContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = self.elastic_type.name
+        type_name = only_word_character(self.elastic_type.name)
 
         mapping = {type_name: {'properties': {
                                    'filename': {
@@ -669,7 +669,7 @@ class WfsContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = self.elastic_type.name
+        type_name = only_word_character(self.elastic_type.name)
 
         mapping = {type_name: {
             'properties': {
