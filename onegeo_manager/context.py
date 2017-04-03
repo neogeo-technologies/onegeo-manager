@@ -192,7 +192,7 @@ class PropertyColumn:
         self.__alias = val
 
     def set_column_type(self, val):
-        if self.authorized_column_type(val):
+        if not self.authorized_column_type(val):
             raise TypeError(
                     "Column type '{0}' is not authorized.".format(val))
         self.__column_type = val
