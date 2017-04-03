@@ -250,7 +250,9 @@ class PropertyColumn:
 
 class AbstractContext(metaclass=ABCMeta):
 
-    def __init__(self, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, elastic_type):
+
+        self.name = name
 
         self.__tags = []
         # self.__preview = []
@@ -361,22 +363,22 @@ class AbstractContext(metaclass=ABCMeta):
 
 class CswContext(AbstractContext):
 
-    def __init__(self, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'CswType':
             raise TypeError("Argument should be an instance of 'CswType'.")
 
-        super().__init__(elastic_index, elastic_type)
+        super().__init__(name, elastic_index, elastic_type)
 
 
 class GeonetContext(AbstractContext):
 
-    def __init__(self, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'GeonetType':
             raise TypeError("Argument should be an instance of 'GeonetType'.")
 
-        super().__init__(elastic_index, elastic_type)
+        super().__init__(name, elastic_index, elastic_type)
 
     def _format(f):
 
@@ -410,9 +412,7 @@ class GeonetContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = only_word_character(self.elastic_type.name)
-
-        mapping = {type_name: {
+        mapping = {self.name: {
             'properties': {
                 'data': {
                     'dynamic': False,
@@ -452,7 +452,7 @@ class GeonetContext(AbstractContext):
                     'type': 'keyword'}}}}
 
         if self.tags:
-            mapping[type_name]['properties']['tags'] = {
+            mapping[self.name]['properties']['tags'] = {
                     'analyzer': analyzer,
                     'boost': 1.0,
                     # 'doc_value'
@@ -477,7 +477,7 @@ class GeonetContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[type_name]['properties']['meta'] = {'properties': props}
+            mapping[self.name]['properties']['meta'] = {'properties': props}
 
         return clean_my_obj(mapping)
 
@@ -487,12 +487,12 @@ class PdfContext(AbstractContext):
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
 
-    def __init__(self, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'PdfType':
             raise TypeError("Argument should be an instance of 'PdfType'.")
 
-        super().__init__(elastic_index, elastic_type)
+        super().__init__(name, elastic_index, elastic_type)
 
     def _format(f):
 
@@ -530,9 +530,7 @@ class PdfContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = only_word_character(self.elastic_type.name)
-
-        mapping = {type_name: {'properties': {
+        mapping = {self.name: {'properties': {
                                    'filename': {
                                        'include_in_all': False,
                                        'index': 'not_analyzed',
@@ -540,7 +538,7 @@ class PdfContext(AbstractContext):
                                        'type': 'keyword'}}}}
 
         if self.tags:
-            mapping[type_name]['properties']['tags'] = {
+            mapping[self.name]['properties']['tags'] = {
                     'analyzer': analyzer,
                     'boost': 1.0,
                     # 'doc_value'
@@ -562,7 +560,7 @@ class PdfContext(AbstractContext):
         for p in self.iter_properties():
 
             if p.column_type == 'pdf':
-                mapping[type_name]['properties']['attachment'] = {
+                mapping[self.name]['properties']['attachment'] = {
                     'properties': {
                         'data': {
                             'analyzer': p.analyzer,
@@ -593,9 +591,9 @@ class PdfContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[type_name]['properties']['meta'] = {'properties': props}
+            mapping[self.name]['properties']['meta'] = {'properties': props}
 
-        mapping[type_name]['properties']['origin'] = {
+        mapping[self.name]['properties']['origin'] = {
             'properties': {
                 'source': {
                     'properties': {
@@ -626,12 +624,12 @@ class PdfContext(AbstractContext):
 
 class WfsContext(AbstractContext):
 
-    def __init__(self, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, elastic_type):
 
         if not elastic_type.__class__.__qualname__ == 'WfsType':
             raise TypeError("Argument should be an instance of 'WfsType'.")
 
-        super().__init__(elastic_index, elastic_type)
+        super().__init__(name, elastic_index, elastic_type)
 
     def _format(f):
 
@@ -669,9 +667,7 @@ class WfsContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
-        type_name = only_word_character(self.elastic_type.name)
-
-        mapping = {type_name: {
+        mapping = {self.name: {
             'properties': {
                 'data': {
                     'properties': {
@@ -713,7 +709,7 @@ class WfsContext(AbstractContext):
                                     'type': 'keyword'}}}}}}}}
 
         if self.tags:
-            mapping[type_name]['properties']['tags'] = {
+            mapping[self.name]['properties']['tags'] = {
                     'analyzer': analyzer,
                     'boost': 1.0,
                     # 'doc_value'
@@ -738,7 +734,7 @@ class WfsContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[type_name]['properties']['data']['properties'] = {
+            mapping[self.name]['properties']['data']['properties'] = {
                                             'properties': {'properties': props}}
 
         return clean_my_obj(mapping)
@@ -746,7 +742,7 @@ class WfsContext(AbstractContext):
 
 class Context:
 
-    def __new__(cls, elastic_index, elastic_type):
+    def __new__(cls, name, elastic_index, elastic_type):
 
         modes = {'CswType': CswContext,
                  'GeonetType': GeonetContext,
@@ -758,5 +754,5 @@ class Context:
             raise ValueError('Unrecognized mode.')
 
         self = object.__new__(cls)
-        self.__init__(elastic_index, elastic_type)
+        self.__init__(name, elastic_index, elastic_type)
         return self
