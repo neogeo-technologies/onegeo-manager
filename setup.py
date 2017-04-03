@@ -23,6 +23,7 @@ setup(name='onegeo-manager',
         'aiohttp>=1.2.0',
         'async_timeout>=1.1.0',
         'neogeo_xml_utils==0.0.1',
-        'PyPDF2>=1.26.0'],
+        'PyPDF2>=1.26.0',
+        'requests>=2.13.0'],
       dependency_links=[
         'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git#egg=neogeo_xml_utils-0.0.1'])

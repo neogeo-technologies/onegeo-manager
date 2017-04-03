@@ -48,15 +48,15 @@ class AbstractType(metaclass=ABCMeta):
 
         if self.is_existing_column(name):
             raise Exception(
-                'Column \'{0}\' already exists.'.format(name))
+                "Column '{0}' already exists.".format(name))
 
         if column_type and not self.authorized_column_type(column_type):
             raise TypeError(
-                'Column type \'{0}\' is not authorized.'.format(column_type),
+                "Column type '{0}' is not authorized.".format(column_type),
                 name)
 
         if self.authorized_occurs(occurs):
-            raise Exception('\'{0}\' is malformed'.format(occurs))
+            raise Exception("'{0}' is malformed".format(occurs))
 
         self.__columns.append({'name': name, 'occurs': occurs,
                                'type': column_type, 'count': count})
@@ -118,8 +118,6 @@ class PdfType(AbstractType):
 
 class WfsType(AbstractType):
 
-    COLUMN_TYPE = ['boolean', 'date', 'double', 'integer', 'string']
-
     GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
                      'LineString', 'MultiLineString', 'GeometryCollection']
 
@@ -127,11 +125,13 @@ class WfsType(AbstractType):
         super().__init__(source, name)
         self.geometry = 'GeometryCollection'
 
-    def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['TimeInstantType']
-
     def authorized_geometry_type(self, val):
         return val in self.GEOMETRY_TYPE
+
+    @staticmethod
+    def column_type_mapper(val):
+        switcher = {'string': 'text'}
+        return switcher.get(val, val)
 
     @staticmethod
     def geometry_type_mapper(val):
@@ -147,8 +147,13 @@ class WfsType(AbstractType):
     def set_geometry_column(self, geom_type):
         t = self.geometry_type_mapper(geom_type)
         if not self.authorized_geometry_type(t):
-            raise Exception('\'{0}\' is not an authorized geometry type'.format(geom_type))
+            raise Exception("'{0}' is not an authorized geometry type".format(
+                                                                    geom_type))
         self.geometry = t
+
+    def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
+        column_type and self.column_type_mapper(column_type)
+        super().add_column(name, column_type=None, occurs=(0, 1), count=None)
 
 
 class Type:

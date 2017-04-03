@@ -1,6 +1,6 @@
-from .utils import execute_aiohttp_get, StaticClass
-
+# from .utils import execute_aiohttp_get
 from .utils import execute_http_get
+from .utils import StaticClass
 
 
 class CswMethod(metaclass=StaticClass):

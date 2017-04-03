@@ -1,36 +1,6 @@
 from re import search, sub
 
 
-# aiohttp stuffs
-
-async def aiohttp_fetcher(client, url, **params):
-
-    from async_timeout import timeout
-
-    with timeout(10):
-        async with client.get(url, **params) as r:
-            if not r.status == 200:
-                r.raise_for_status()
-
-            pattern = '^(text|application)\/((\w+)\+?)+\;?(\s?charset\=[\w\d\D]+)?$'
-            s = search(pattern, r.content_type)
-            if s and s.group(2) == 'json':
-                return await r.json()
-            elif s and s.group(2) == 'xml':
-                return await r.text()
-            else:
-                # TODO
-                raise Exception('Error service response.')
-
-
-async def aiohttp_client(loop, url, **params):
-
-    from aiohttp import ClientSession
-
-    async with ClientSession(loop=loop) as client:
-        return await aiohttp_fetcher(client, url, **params)
-
-
 def ows_response_converter(f):
 
     from functools import wraps
@@ -62,12 +32,45 @@ def ows_response_converter(f):
     return wrapper
 
 
-def execute_aiohttp_get(url, **params):
-    from asyncio import get_event_loop as loop
-    return loop().run_until_complete(aiohttp_client(loop(), url, params=params))
+# aiohttp stuffs
 
+# async def aiohttp_fetcher(client, url, **params):
+
+#     from async_timeout import timeout
+
+#     with timeout(10):
+#         async with client.get(url, **params) as r:
+#             if not r.status == 200:
+#                 r.raise_for_status()
+
+#             pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)+$'
+#             s = search(pattern, r.content_type)
+#             if s and s.group(2) == 'json':
+#                 return await r.json()
+#             elif s and s.group(2) == 'xml':
+#                 return await r.text()
+#             else:
+#                 # TODO
+#                 raise Exception('Error service response.')
+
+
+# async def aiohttp_client(loop, url, **params):
+
+#     from aiohttp import ClientSession
+
+#     async with ClientSession(loop=loop) as client:
+#         return await aiohttp_fetcher(client, url, **params)
+
+
+# def execute_aiohttp_get(url, **params):
+#     from asyncio import get_event_loop as loop
+#     return loop().run_until_complete(aiohttp_client(loop(), url, params=params))
+
+
+# Requests stuffs
 
 def execute_http_get(url, **params):
+
     from requests import get
 
     r = get(url, params=params)
