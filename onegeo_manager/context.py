@@ -107,6 +107,11 @@ def fetch_mapping(p):
 
 class PropertyColumn:
 
+    COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
+                   'double', 'double_range', 'float', 'float_range',
+                   'half_float', 'integer', 'integer_range', 'ip', 'keyword',
+                   'long', 'long_range', 'scaled_float', 'short', 'text']
+
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
                  analyzer=None, search_analyzer=None, count=None):
@@ -135,6 +140,9 @@ class PropertyColumn:
             self.set_pattern(pattern)
         self.set_analyzer(analyzer)
         self.set_search_analyzer(search_analyzer)
+
+    def authorized_column_type(self, val):
+        return val in self.COLUMN_TYPE
 
     @property
     def name(self):
@@ -184,7 +192,9 @@ class PropertyColumn:
         self.__alias = val
 
     def set_column_type(self, val):
-        # TODO: Vérifier si 'type' est une valeur autorisée
+        if self.authorized_column_type(val):
+            raise TypeError(
+                    "Column type '{0}' is not authorized.".format(val))
         self.__column_type = val
 
     def set_occurs(self, val):
@@ -665,7 +675,7 @@ class WfsContext(AbstractContext):
             'properties': {
                 'data': {
                     'properties': {
-                        'geometry': {   # TODO
+                        'geometry': {  # TODO
                             'dynamic': False,
                             'enabled': False,
                             'include_in_all': False,
@@ -729,7 +739,7 @@ class WfsContext(AbstractContext):
 
         if props:
             mapping[type_name]['properties']['data']['properties'] = {
-                                                            'properties': props}
+                                            'properties': {'properties': props}}
 
         return clean_my_obj(mapping)
 
