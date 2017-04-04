@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 
-from .utils import clean_my_obj, only_word_character
+from .utils import clean_my_obj
 
 
 __all__ = ['Context']
@@ -250,30 +250,34 @@ class PropertyColumn:
 
 class AbstractContext(metaclass=ABCMeta):
 
-    def __init__(self, name, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, resource):
 
-        self.name = name
+        self.__name = name
 
         self.__tags = []
         # self.__preview = []
         self.__elastic_index = None
-        self.__elastic_type = None
+        self.__resource = None
         self.__properties = []
 
         if not elastic_index.__class__.__qualname__ == 'Index':
             raise TypeError("Argument should be an instance of 'Index'.")
 
-        self.set_elastic_type(elastic_type)
+        self.set_resource(resource)
         self.set_elastic_index(elastic_index)
 
-        for c in self.elastic_type.iter_columns():
+        for c in self.resource.iter_columns():
             self.__properties.append(PropertyColumn(
                                 c['name'], column_type=c['type'],
                                 occurs=c['occurs'], count=c['count']))
 
     @property
-    def elastic_type(self):
-        return self.__elastic_type
+    def name(self):
+        return self.__name
+
+    @property
+    def resource(self):
+        return self.__resource
 
     @property
     def elastic_index(self):
@@ -283,8 +287,8 @@ class AbstractContext(metaclass=ABCMeta):
     def tags(self):
         return self.__tags
 
-    def set_elastic_type(self, elastic_type):
-        self.__elastic_type = elastic_type
+    def set_resource(self, resource):
+        self.__resource = resource
 
     def set_elastic_index(self, elastic_index):
         self.__elastic_index = elastic_index
@@ -344,7 +348,7 @@ class AbstractContext(metaclass=ABCMeta):
     #         if type(name) is not str:
     #             raise TypeError('List values should be strings.')
     #
-    #         if not self.elastic_type.is_existing_column(name):
+    #         if not self.resource.is_existing_column(name):
     #             raise Exception(
     #                         'Property \'{0}\' does not exist.'.format(name))
     #
@@ -363,22 +367,22 @@ class AbstractContext(metaclass=ABCMeta):
 
 class CswContext(AbstractContext):
 
-    def __init__(self, name, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, resource):
 
-        if not elastic_type.__class__.__qualname__ == 'CswType':
-            raise TypeError("Argument should be an instance of 'CswType'.")
+        if not resource.__class__.__qualname__ == 'CswResource':
+            raise TypeError("Argument should be an instance of 'CswResource'.")
 
-        super().__init__(name, elastic_index, elastic_type)
+        super().__init__(name, elastic_index, resource)
 
 
 class GeonetContext(AbstractContext):
 
-    def __init__(self, name, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, resource):
 
-        if not elastic_type.__class__.__qualname__ == 'GeonetType':
-            raise TypeError("Argument should be an instance of 'GeonetType'.")
+        if not resource.__class__.__qualname__ == 'GeonetResource':
+            raise TypeError("Argument should be an instance of 'GeonetResource'.")
 
-        super().__init__(name, elastic_index, elastic_type)
+        super().__init__(name, elastic_index, resource)
 
     def _format(f):
 
@@ -388,24 +392,24 @@ class GeonetContext(AbstractContext):
 
                 meta = dict((p.name, e[p.name]) for p in self.iter_properties())
                 uri = '{0}.metadata.get?uuid={1}'.format(
-                            self.elastic_type.source.uri.split('.search')[0],
+                            self.resource.source.uri.split('.search')[0],
                             e['info']['uuid'])
 
                 yield {'data': e,
                        'meta': meta,
                        'origin': {
                            'source': {
-                               'name': self.elastic_type.source.name,
-                               'uri': self.elastic_type.source.uri},
+                               'name': self.resource.source.name,
+                               'uri': self.resource.source.uri},
                            'resource': {
-                               'name': self.elastic_type.name}},
+                               'name': self.resource.name}},
                        'uri': uri}
 
         return wrapper
 
     @_format
     def get_collection(self):
-        return self.elastic_type.source.get_collection(self.elastic_type.name)
+        return self.resource.source.get_collection(self.resource.name)
 
     def generate_elastic_mapping(self):
 
@@ -487,12 +491,12 @@ class PdfContext(AbstractContext):
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
 
-    def __init__(self, name, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, resource):
 
-        if not elastic_type.__class__.__qualname__ == 'PdfType':
-            raise TypeError("Argument should be an instance of 'PdfType'.")
+        if not resource.__class__.__qualname__ == 'PdfResource':
+            raise TypeError("Argument should be an instance of 'PdfResource'.")
 
-        super().__init__(name, elastic_index, elastic_type)
+        super().__init__(name, elastic_index, resource)
 
     def _format(f):
 
@@ -514,16 +518,16 @@ class PdfContext(AbstractContext):
                        'meta': set_aliases(e['meta']),
                        'origin': {
                            'source': {
-                               'name': self.elastic_type.source.name,
-                               'uri': self.elastic_type.source.uri},
+                               'name': self.resource.source.name,
+                               'uri': self.resource.source.uri},
                            'resource': {
-                               'name': self.elastic_type.name}}}
+                               'name': self.resource.name}}}
 
         return wrapper
 
     @_format
     def get_collection(self):
-        return self.elastic_type.source.get_collection(self.elastic_type.name)
+        return self.resource.source.get_collection(self.resource.name)
 
     def generate_elastic_mapping(self):
 
@@ -624,12 +628,12 @@ class PdfContext(AbstractContext):
 
 class WfsContext(AbstractContext):
 
-    def __init__(self, name, elastic_index, elastic_type):
+    def __init__(self, name, elastic_index, resource):
 
-        if not elastic_type.__class__.__qualname__ == 'WfsType':
-            raise TypeError("Argument should be an instance of 'WfsType'.")
+        if not resource.__class__.__qualname__ == 'WfsResource':
+            raise TypeError("Argument should be an instance of 'WfsResource'.")
 
-        super().__init__(name, elastic_index, elastic_type)
+        super().__init__(name, elastic_index, resource)
 
     def _format(f):
 
@@ -650,17 +654,17 @@ class WfsContext(AbstractContext):
                 yield {'data': e,
                        'origin': {
                            'source': {
-                               'name': self.elastic_type.source.name,
-                               'uri': self.elastic_type.source.uri},
+                               'name': self.resource.source.name,
+                               'uri': self.resource.source.uri},
                            'resource': {
-                               'name': self.elastic_type.name}}}
+                               'name': self.resource.name}}}
 
         return wrapper
 
     @_format
     def get_collection(self, **opts):
-        return self.elastic_type.source.get_collection(
-                                            self.elastic_type.name, **opts)
+        return self.resource.source.get_collection(
+                                            self.resource.name, **opts)
 
     def generate_elastic_mapping(self):
 
@@ -742,17 +746,17 @@ class WfsContext(AbstractContext):
 
 class Context:
 
-    def __new__(cls, name, elastic_index, elastic_type):
+    def __new__(cls, name, elastic_index, resource):
 
-        modes = {'CswType': CswContext,
-                 'GeonetType': GeonetContext,
-                 'PdfType': PdfContext,
-                 'WfsType': WfsContext}
+        modes = {'CswResource': CswContext,
+                 'GeonetResource': GeonetContext,
+                 'PdfResource': PdfContext,
+                 'WfsResource': WfsContext}
 
-        cls = modes.get(elastic_type.__class__.__qualname__, None)
+        cls = modes.get(resource.__class__.__qualname__, None)
         if not cls:
             raise ValueError('Unrecognized mode.')
 
         self = object.__new__(cls)
-        self.__init__(name, elastic_index, elastic_type)
+        self.__init__(name, elastic_index, resource)
         return self

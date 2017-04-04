@@ -1,10 +1,10 @@
 from abc import ABCMeta
 
 
-__all__ = ['Type']
+__all__ = ['Resource']
 
 
-class AbstractType(metaclass=ABCMeta):
+class AbstractResource(metaclass=ABCMeta):
 
     COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
                    'double', 'double_range', 'float', 'float_range',
@@ -61,26 +61,6 @@ class AbstractType(metaclass=ABCMeta):
         self.__columns.append({'name': name, 'occurs': occurs,
                                'type': column_type, 'count': count})
 
-    # def update_column(self, name, column_type=None, occurs=None):
-    #
-    #     if self.is_existing_column(name):
-    #         raise Exception(
-    #             'Column \'{0}\' already exists.'.format(name))
-    #
-    #     if column_type and not self.authorized_column_type(column_type):
-    #         raise Exception(
-    #             'Column type \'{0}\' is not authorized.'.format(column_type))
-    #
-    #     if self.authorized_occurs(occurs):
-    #         raise Exception('\'{0}\' is malformed'.format(occurs))
-    #
-    #     for c in self.iter_columns():
-    #         if not c['name'] == name:
-    #             if occurs:
-    #                 c['occurs'] = occurs
-    #             if column_type:
-    #                 c['type'] = column_type
-
     def iter_column_name(self):
         return iter([c['name'] for c in self.__columns])
 
@@ -88,7 +68,7 @@ class AbstractType(metaclass=ABCMeta):
         return name in self.iter_column_name() and True or False
 
 
-class CswType(AbstractType):
+class CswResource(AbstractResource):
 
     def __init__(self, source, name):
         super().__init__(source, name)
@@ -97,7 +77,7 @@ class CswType(AbstractType):
         return val in self.COLUMN_TYPE + ['object']
 
 
-class GeonetType(AbstractType):
+class GeonetResource(AbstractResource):
 
     def __init__(self, source, name):
         super().__init__(source, name)
@@ -106,7 +86,7 @@ class GeonetType(AbstractType):
         return val in self.COLUMN_TYPE + ['object']
 
 
-class PdfType(AbstractType):
+class PdfResource(AbstractResource):
 
     def __init__(self, source, name):
         super().__init__(source, name)
@@ -116,7 +96,7 @@ class PdfType(AbstractType):
         return val in self.COLUMN_TYPE + ['pdf']
 
 
-class WfsType(AbstractType):
+class WfsResource(AbstractResource):
 
     GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
                      'LineString', 'MultiLineString', 'GeometryCollection']
@@ -156,14 +136,14 @@ class WfsType(AbstractType):
         super().add_column(name, column_type=None, occurs=(0, 1), count=None)
 
 
-class Type:
+class Resource:
 
     def __new__(cls, source, name):
 
-        modes = {'CswSource': CswType,
-                 'GeonetSource': GeonetType,
-                 'PdfSource': PdfType,
-                 'WfsSource': WfsType}
+        modes = {'CswSource': CswResource,
+                 'GeonetSource': GeonetResource,
+                 'PdfSource': PdfResource,
+                 'WfsSource': WfsResource}
 
         cls = modes.get(source.__class__.__qualname__, None)
         if not cls:

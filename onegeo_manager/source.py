@@ -5,8 +5,8 @@ from re import search
 
 from PyPDF2 import PdfFileReader
 
-from .ogc import CswMethod, GeonetMethod, WfsMethod
-from .type import Type
+from .method import CswMethod, GeonetMethod, WfsMethod
+from .resource import Resource
 from .utils import from_camel_was_born_snake, ows_response_converter
 
 
@@ -18,13 +18,13 @@ class AbstractSource(metaclass=ABCMeta):
     def __init__(self, uri, name):
         self.uri = uri
 
-        s = search('^[a-z0-9_]{2,30}$', name)
+        s = search('^[a-z0-9_]{2,100}$', name)
         if not s:
             raise ValueError("Malformed value for 'name'.")
         self.name = name
 
     @abstractmethod
-    def get_types(self, *args, **kwargs):
+    def get_resources(self, *args, **kwargs):
         raise NotImplementedError("This is an abstract method. "
                                   "You can't do anything with it.")
 
@@ -41,37 +41,37 @@ class CswSource(AbstractSource):
 
         self.capabilities = self.__get_capabilities()['Capabilities']
 
-    def get_types(self):
-        return [Type(self, 'dataset'),
-                Type(self, 'nonGeographicDataset'),
-                Type(self, 'series'),
-                Type(self, 'service')]
+    def get_resources(self):
+        return [Resource(self, 'dataset'),
+                Resource(self, 'nonGeographicDataset'),
+                Resource(self, 'series'),
+                Resource(self, 'service')]
 
-    def get_collection(self, typename='dataset', count=100):
+    def get_collection(self, resource_name, count=100):
 
-        params = {'VERSION': self.capabilities['@version']}
+        params = {'version': self.capabilities['@version']}
 
-        if params['VERSION'] != '2.0.2':
+        if params['version'] != '2.0.2':
             raise NotImplemented(
                     'Version {0} not implemented.'.format(params['VERSION']))
 
         params.update({
-            'CONSTRAINT': "type LIKE '{0}'".format(typename),
-            'CONSTRAINT_LANGUAGE_VERSION': '1.0.0',
-            'CONSTRAINTLANGUAGE': 'CQL_TEXT',
-            'ELEMENTSETNAME': 'full',
-            'MAXRECORDS': count,
-            'OUTPUTSCHEMA': 'http://www.isotc211.org/2005/gmd',
-            'RESULTTYPE': 'results',
-            'STARTPOSITION': 1,
-            'TYPENAMES': 'csw:Record'}) # gmd:MD_Metadata, csw:Record
+            'constraint': "type LIKE '{0}'".format(resource_name),
+            'constraint_language_version': '1.0.0',
+            'constraintlanguage': 'CQL_TEXT',
+            'elementsetname': 'full',
+            'maxrecords': count,
+            'outputschema': 'http://www.isotc211.org/2005/gmd',
+            'resulttype': 'results',
+            'startposition': 1,
+            'typenames': 'csw:Record'}) # gmd:MD_Metadata, csw:Record
 
         while True:
             data = self.__get_records(**params)['GetRecordsResponse']['SearchResults']['Record']
             yield from data
             if len(data) < count:
                 break
-            params['STARTPOSITION'] += count
+            params['startposition'] += count
 
     @ows_response_converter
     def __get_capabilities(self, **params):
@@ -90,19 +90,20 @@ class GeonetSource(AbstractSource):
         params = {'fast': 'true', 'from': 0, 'to': 0}
         self.summary = self.__search(**params)['response']['summary']
 
-    def get_types(self):
-        types = []
+    def get_resources(self):
+        resources = []
         for entry in self.summary['types']['type']:
-            type = Type(self, entry['@name'])
-            type.add_column('title', column_type='keyword')
-            type.add_column('abstract', column_type='text')
-            type.add_column('keyword', column_type='keyword')
-            types.append(type)
-        return types
+            resource = Resource(self, entry['@name'])
+            resource.add_column('title', column_type='keyword')
+            resource.add_column('abstract', column_type='text')
+            resource.add_column('keyword', column_type='keyword')
+            resources.append(resource)
+        return resources
 
-    def get_collection(self, typename, count=100):
+    def get_collection(self, resource_name, count=100):
 
-        params = {'fast': 'false', 'from': 1, 'to': count, 'type': typename}
+        params = {'fast': 'false', 'from': 1,
+                  'to': count, 'type': resource_name}
 
         while True:
             data = self.__search(**params)['response']['metadata']
@@ -139,12 +140,12 @@ class PdfSource(AbstractSource):
             return iter(subdirs)
         return iter([self.__p])
 
-    def get_types(self):
+    def get_resources(self):
 
         arr = []
         for subdir in self._iter_dir_path():
             columns = {}
-            t = Type(self, from_camel_was_born_snake(subdir.name))
+            resource = Resource(self, from_camel_was_born_snake(subdir.name))
             for p in self._iter_pdf_path(subdir.name):
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
@@ -156,12 +157,12 @@ class PdfSource(AbstractSource):
                     else:
                         columns[k] = 1
             for column, count in columns.items():
-                t.add_column(column, count=count)
-            arr.append(t)
+                resource.add_column(column, count=count)
+            arr.append(resource)
 
         return arr
 
-    def get_collection(self, type_name):
+    def get_collection(self, resource_name):
 
         def format(meta):
             copy = {}
@@ -174,12 +175,12 @@ class PdfSource(AbstractSource):
 
         target = None
         for subdir in self._iter_dir_path():
-            if subdir.name == type_name:
+            if subdir.name == resource_name:
                 target = subdir
                 break
 
         if not target:
-            raise ValueError('{0} not found.'.format(type_name))
+            raise ValueError('{0} not found.'.format(resource_name))
 
         for path in self._iter_pdf_path(target.name):
             f = open(path.as_posix(), 'rb')
@@ -195,42 +196,42 @@ class WfsSource(AbstractSource):
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
-    def get_types(self):
+    def get_resources(self):
 
         desc = self.__describe_feature_type(
                                     version=self.capabilities['@version'])
 
-        types = []
+        resources = []
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                                         for m in desc['schema']['element']]):
 
-            ft = Type(self, elt[0])
+            resource = Resource(self, elt[0])
 
-            t = None
+            ct = None
             for complex_type in iter(desc['schema']['complexType']):
                 if complex_type['@name'] == elt[1]:
-                    t = complex_type
+                    ct = complex_type
                     break
-            #   p
-            for e in t['complexContent']['extension']['sequence']['element']:
+
+            for e in ct['complexContent']['extension']['sequence']['element']:
                 n = '@name' in e and str(e['@name']) or None
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None
                 o = ('@minOccurs' in e and int(e['@minOccurs']) or 0,
                      '@maxOccurs' in e and int(e['@maxOccurs']) or 1)
 
-                if n in ['msGeometry', 'geometry']:  # TODO
-                    ft.set_geometry_column(t)
+                if n in ['msGeometry', 'geometry']:  # TODO: Comment être sûr...
+                    resource.set_geometry_column(t)
                 else:
-                    ft.add_column(n, column_type=t, occurs=o)
+                    resource.add_column(n, column_type=t, occurs=o)
 
-            types.append(ft)
-        return types
+            resources.append(resource)
+        return resources
 
-    def get_collection(self, typename, count=100):
+    def get_collection(self, resource_name, count=100):
         """
 
         :param typename: Le nom du type d'objets à retourner.
-        :param count: Le pas de pagination du GetFeature (opt).
+        :param count: Le pas de pagination du GetFeatu²re (opt).
         :return: Un générateur contenant des GeoJSON.
         """
 
@@ -240,11 +241,11 @@ class WfsSource(AbstractSource):
                     return f
             raise ValueError('{0} not found.'.format(ft_name))
 
-        capacity = retreive_ft_meta(typename)
+        capacity = retreive_ft_meta(resource_name)
 
-        params = {'VERSION': self.capabilities['@version']}
+        params = {'version': self.capabilities['@version']}
 
-        if params['VERSION'] != '2.0.0':
+        if params['version'] != '2.0.0':
             raise NotImplemented(
                     'Version {0} not implemented.'.format(params['VERSION']))
 
@@ -252,10 +253,10 @@ class WfsSource(AbstractSource):
         format_str = ','.join(capacity['OutputFormats']['Format'])
 
         testing = {
-            'SRSNAME': {
+            'srsname': {
                 'pattern': '((^|((\w*\:+)+))4326)',
                 'string': crs_str},
-            'OUTPUTFORMAT': {
+            'outputformat': {
                 'pattern': '((text|application)\/json\;?\s?subtype\=geojson)',
                 'string': format_str}}
 
@@ -265,12 +266,12 @@ class WfsSource(AbstractSource):
                 raise ValueError('TODO')  # TODO
             params[k] = s.group(0)
 
-        params.update({'TYPENAMES': typename,
-                       'STARTINDEX': 0,
-                       'COUNT': count})
+        params.update({'typenames': resource_name,
+                       'startindex': 0,
+                       'count': count})
 
         # C'est très moche mais c'est pour contourner un bug(?) de 'aiohttp'
-        params['OUTPUTFORMAT'] = 'geojson'
+        # params['OUTPUTFORMAT'] = 'geojson'
 
         while True:
             # Boucle sur le GetFeature tant que tous
@@ -279,7 +280,7 @@ class WfsSource(AbstractSource):
             yield from data
             if len(data) < count:
                 break
-            params['STARTINDEX'] += count
+            params['startindex'] += count
 
     @ows_response_converter
     def __get_capabilities(self, **params):
