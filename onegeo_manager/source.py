@@ -131,8 +131,12 @@ class PdfSource(AbstractSource):
 
         super().__init__(self.__p.as_uri(), name)
 
-    def _iter_pdf_path(self, subdir_name):
-        return iter(list(self.__p.glob('{0}/**/*.pdf'.format(subdir_name))))
+    def _iter_pdf_path(self, subdir_name=None):
+        if subdir_name:
+            path = '{0}/**/*.pdf'.format(subdir_name)
+        else:
+            path = '**/*.pdf'
+        return iter(list(self.__p.glob(path)))
 
     def _iter_dir_path(self):
         subdirs = [sub for sub in self.__p.iterdir() if sub.is_dir()]
@@ -144,9 +148,13 @@ class PdfSource(AbstractSource):
 
         arr = []
         for subdir in self._iter_dir_path():
+            if subdir == self.__p:
+                iter_pdf_path = self._iter_pdf_path()
+            else:
+                iter_pdf_path = self._iter_pdf_path(subdir_name=subdir.name)
             columns = {}
             resource = Resource(self, from_camel_was_born_snake(subdir.name))
-            for p in self._iter_pdf_path(subdir.name):
+            for p in iter_pdf_path:
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
                     k = k[1:]
@@ -173,16 +181,17 @@ class PdfSource(AbstractSource):
                 copy[k] = v
             return copy
 
-        target = None
+        iter_pdf_path = None
         for subdir in self._iter_dir_path():
-            if subdir.name == resource_name:
-                target = subdir
-                break
+            if subdir == self.__p:
+                iter_pdf_path = self._iter_pdf_path()
+            else:
+                iter_pdf_path = self._iter_pdf_path(subdir_name=subdir.name)
 
-        if not target:
+        if not iter_pdf_path:
             raise ValueError('{0} not found.'.format(resource_name))
 
-        for path in self._iter_pdf_path(target.name):
+        for path in iter_pdf_path:
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
