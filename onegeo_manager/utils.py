@@ -73,9 +73,19 @@ def execute_http_get(url, **params):
 
     from requests import get
 
-    r = get(url, params=params)
+    e = None
+    for i in range(0, 100):
+        try:
+            r = get(url, params=params)
+        except Exception as err:
+            e = err
+            continue
+        else:
+            break
+    else:
+        raise e
 
-    if not r.status_code == 200:
+    if r.status_code == 200:
         r.raise_for_status()
 
     pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)+$'
