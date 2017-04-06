@@ -153,7 +153,7 @@ class PdfSource(AbstractSource):
             else:
                 iter_pdf_path = self._iter_pdf_path(subdir_name=subdir.name)
             columns = {}
-            resource = Resource(self, from_camel_was_born_snake(subdir.name))
+            resource = Resource(self, subdir.name)
             for p in iter_pdf_path:
                 pdf = PdfFileReader(open(p.as_posix(), 'rb'))
                 for k, _ in pdf.getDocumentInfo().items():
@@ -185,13 +185,14 @@ class PdfSource(AbstractSource):
         for subdir in self._iter_dir_path():
             if subdir == self.__p:
                 iter_pdf_path = self._iter_pdf_path()
-            else:
+            elif subdir.name == resource_name:
                 iter_pdf_path = self._iter_pdf_path(subdir_name=subdir.name)
 
         if not iter_pdf_path:
             raise ValueError('{0} not found.'.format(resource_name))
 
         for path in iter_pdf_path:
+            print(path.as_posix())
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
@@ -239,7 +240,7 @@ class WfsSource(AbstractSource):
     def get_collection(self, resource_name, count=100):
         """
 
-        :param typename: Le nom du type d'objets à retourner.
+        :param resource_name: Le nom du type d'objets à retourner.
         :param count: Le pas de pagination du GetFeatu²re (opt).
         :return: Un générateur contenant des GeoJSON.
         """
