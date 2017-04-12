@@ -103,6 +103,11 @@ class WfsResource(AbstractResource):
 
     def __init__(self, source, name):
         super().__init__(source, name)
+
+        self.title = ''
+        self.abstract = ''
+        self.metadata_url = ''
+
         self.geometry = 'GeometryCollection'
 
     def authorized_geometry_type(self, val):

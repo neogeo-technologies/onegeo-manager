@@ -655,9 +655,15 @@ class WfsContext(AbstractContext):
                        'origin': {
                            'source': {
                                'name': self.resource.source.name,
+                               'title': self.resource.source.title,
+                               'abstract': self.resource.source.abstract,
+                               'metadata_url': self.resource.source.metadata_url,
                                'uri': self.resource.source.uri},
                            'resource': {
-                               'name': self.resource.name}}}
+                               'name': self.resource.name,
+                               'title': self.resource.title,
+                               'abstract': self.resource.abstract,
+                               'metadata_url': self.resource.metadata_url}}}
 
         return wrapper
 

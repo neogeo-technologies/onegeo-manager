@@ -7,7 +7,7 @@ from PyPDF2 import PdfFileReader
 
 from .method import CswMethod, GeonetMethod, WfsMethod
 from .resource import Resource
-from .utils import from_camel_was_born_snake, ows_response_converter
+from .utils import obj_browser, ows_response_converter
 
 
 __all__ = ['Source']
@@ -192,7 +192,6 @@ class PdfSource(AbstractSource):
             raise ValueError('{0} not found.'.format(resource_name))
 
         for path in iter_pdf_path:
-            print(path.as_posix())
             f = open(path.as_posix(), 'rb')
             yield {'data': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
@@ -206,6 +205,19 @@ class WfsSource(AbstractSource):
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
+        self.title = obj_browser(self.capabilities,
+                                    'ServiceIdentification', 'Title')
+
+        self.abstract = obj_browser(self.capabilities,
+                                    'ServiceIdentification', 'Abstract')
+        self.metadata_url = ''
+
+    def retreive_ft_meta(self, ft_name):
+        for f in iter(self.capabilities['FeatureTypeList']['FeatureType']):
+            if f['Name'].split(':')[-1] == ft_name:
+                return f
+        raise ValueError('{0} not found.'.format(ft_name))
+
     def get_resources(self):
 
         desc = self.__describe_feature_type(
@@ -215,7 +227,12 @@ class WfsSource(AbstractSource):
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                                         for m in desc['schema']['element']]):
 
+            capacity = self.retreive_ft_meta(elt[0])
+
             resource = Resource(self, elt[0])
+            resource.title = obj_browser(capacity, 'Title')
+            resource.abstract = obj_browser(capacity, 'Abstract')
+            resource.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
 
             ct = None
             for complex_type in iter(desc['schema']['complexType']):
@@ -241,17 +258,11 @@ class WfsSource(AbstractSource):
         """
 
         :param resource_name: Le nom du type d'objets à retourner.
-        :param count: Le pas de pagination du GetFeatu²re (opt).
+        :param count: Le pas de pagination du GetFeature (opt).
         :return: Un générateur contenant des GeoJSON.
         """
 
-        def retreive_ft_meta(ft_name):
-            for f in iter(self.capabilities['FeatureTypeList']['FeatureType']):
-                if f['Name'].split(':')[-1] == ft_name:
-                    return f
-            raise ValueError('{0} not found.'.format(ft_name))
-
-        capacity = retreive_ft_meta(resource_name)
+        capacity = self.retreive_ft_meta(resource_name)
 
         params = {'version': self.capabilities['@version']}
 
