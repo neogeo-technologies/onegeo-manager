@@ -123,15 +123,16 @@ def from_camel_was_born_snake(txt):
     return sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>', s1).lower()
 
 
-def obj_browser(obj, *tags):
-    tag = tags[0]
-    if tag in obj:
-        if tag == tags[-1]:
-            return obj[tag]
-        if isinstance(obj[tag], dict):
-            return obj_browser(obj[tag], *tags[1:])
-        else:
-            return None
+def obj_browser(obj, *tag):
+    if tag[0] in obj:
+        if tag[0] == tag[-1]:
+            return obj[tag[0]]
+        if isinstance(obj[tag[0]], dict):
+            return obj_browser(obj[tag[0]], *tag[1:])
+        if isinstance(obj[tag[0]], list):
+            raise Exception() # TODO
+        if isinstance(obj[tag[0]], str):
+            raise Exception() # TODO
 
 
 # Class types

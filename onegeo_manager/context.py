@@ -677,15 +677,24 @@ class WfsContext(AbstractContext):
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
+        if self.resource.geometry in ('Point', 'MultiPoint'):
+            geometry_mapping = {'type': 'geo_point',
+                                'ignore_malformed': True}
+        else:
+            geometry_mapping = {'type': 'geo_shape',
+                                'tree': 'quadtree',
+                                # 'precision': '',
+                                # 'tree_levels': '',
+                                # 'strategy': '',
+                                'distance_error_pct': 0,
+                                'orientation': 'counterclockwise',
+                                'points_only': False}
+
         mapping = {self.name: {
             'properties': {
                 'data': {
                     'properties': {
-                        'geometry': {  # TODO
-                            'dynamic': False,
-                            'enabled': False,
-                            'include_in_all': False,
-                            'type': 'object'},
+                        'geometry': geometry_mapping,
                         'type': {
                             'include_in_all': False,
                             'index': 'not_analyzed',
@@ -696,6 +705,21 @@ class WfsContext(AbstractContext):
                         'source': {
                             'properties': {
                                 'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'title': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'abstract': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'metadata_url': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
@@ -713,6 +737,21 @@ class WfsContext(AbstractContext):
                         'resource': {
                             'properties': {
                                 'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'title': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'abstract': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'metadata_url': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
