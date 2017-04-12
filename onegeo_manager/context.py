@@ -672,7 +672,7 @@ class WfsContext(AbstractContext):
         return self.resource.source.get_collection(
                                             self.resource.name, **opts)
 
-    def generate_elastic_mapping(self):
+    def generate_elastic_mapping(self, parent=None):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
@@ -785,6 +785,9 @@ class WfsContext(AbstractContext):
         if props:
             mapping[self.name]['properties'] \
                     ['data']['properties']['properties'] = {'properties': props}
+
+        if parent:
+            mapping[self.name]['_parent'] = {'type': parent}
 
         return clean_my_obj(mapping)
 

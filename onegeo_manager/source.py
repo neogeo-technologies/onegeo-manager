@@ -64,7 +64,7 @@ class CswSource(AbstractSource):
             'outputschema': 'http://www.isotc211.org/2005/gmd',
             'resulttype': 'results',
             'startposition': 1,
-            'typenames': 'csw:Record'}) # gmd:MD_Metadata, csw:Record
+            'typenames': 'csw:Record'})  # gmd:MD_Metadata, csw:Record
 
         while True:
             data = self.__get_records(**params)['GetRecordsResponse']['SearchResults']['Record']
@@ -205,11 +205,12 @@ class WfsSource(AbstractSource):
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
-        self.title = obj_browser(self.capabilities,
-                                    'ServiceIdentification', 'Title')
+        self.title = obj_browser(
+                self.capabilities, 'ServiceIdentification', 'Title')
 
-        self.abstract = obj_browser(self.capabilities,
-                                    'ServiceIdentification', 'Abstract')
+        self.abstract = obj_browser(
+                self.capabilities, 'ServiceIdentification', 'Abstract')
+
         self.metadata_url = ''
 
     def _retreive_ft_meta(self, ft_name):
