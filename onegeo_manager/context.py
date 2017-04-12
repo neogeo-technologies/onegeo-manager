@@ -783,8 +783,8 @@ class WfsContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[self.name]['properties']['data']['properties'] = {
-                                            'properties': {'properties': props}}
+            mapping[self.name]['properties'] \
+                    ['data']['properties']['properties'] = {'properties': props}
 
         return clean_my_obj(mapping)
 

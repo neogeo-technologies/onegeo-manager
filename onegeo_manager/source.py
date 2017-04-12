@@ -230,9 +230,11 @@ class WfsSource(AbstractSource):
             capacity = self.retreive_ft_meta(elt[0])
 
             resource = Resource(self, elt[0])
+
             resource.title = obj_browser(capacity, 'Title')
             resource.abstract = obj_browser(capacity, 'Abstract')
-            resource.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
+            resource.metadata_url = obj_browser(
+                                            capacity, 'MetadataURL', '@href')
 
             ct = None
             for complex_type in iter(desc['schema']['complexType']):

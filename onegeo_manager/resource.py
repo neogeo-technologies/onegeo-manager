@@ -104,9 +104,9 @@ class WfsResource(AbstractResource):
     def __init__(self, source, name):
         super().__init__(source, name)
 
-        self.title = ''
-        self.abstract = ''
-        self.metadata_url = ''
+        self.title = None
+        self.abstract = None
+        self.metadata_url = None
 
         self.geometry = 'GeometryCollection'
 
