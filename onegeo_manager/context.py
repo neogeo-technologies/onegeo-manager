@@ -355,7 +355,7 @@ class AbstractContext(metaclass=ABCMeta):
     #         self.__preview.append(name)
 
     @abstractmethod
-    def generate_elastic_mapping(self):
+    def generate_elastic_mapping(self, parent=None):
         raise NotImplementedError('This is an abstract method. '
                                   "You can't do anything with it.")
 
@@ -411,7 +411,7 @@ class GeonetContext(AbstractContext):
     def get_collection(self):
         return self.resource.source.get_collection(self.resource.name)
 
-    def generate_elastic_mapping(self):
+    def generate_elastic_mapping(self, parent=None):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
@@ -483,6 +483,9 @@ class GeonetContext(AbstractContext):
         if props:
             mapping[self.name]['properties']['meta'] = {'properties': props}
 
+        if parent:
+            mapping[self.name]['_parent'] = {'type': parent}
+
         return clean_my_obj(mapping)
 
 
@@ -529,7 +532,7 @@ class PdfContext(AbstractContext):
     def get_collection(self):
         return self.resource.source.get_collection(self.resource.name)
 
-    def generate_elastic_mapping(self):
+    def generate_elastic_mapping(self, parent=None):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
@@ -622,6 +625,9 @@ class PdfContext(AbstractContext):
                             'index': 'not_analyzed',
                             'store': False,
                             'type': 'keyword'}}}}}
+
+        if parent:
+            mapping[self.name]['_parent'] = {'type': parent}
 
         return clean_my_obj(mapping)
 
