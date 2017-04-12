@@ -1,5 +1,7 @@
 from abc import ABCMeta
 
+from .utils import obj_browser
+
 
 __all__ = ['Resource']
 
@@ -104,11 +106,14 @@ class WfsResource(AbstractResource):
     def __init__(self, source, name):
         super().__init__(source, name)
 
-        self.title = None
-        self.abstract = None
-        self.metadata_url = None
+        capacity = self.source._retreive_ft_meta(name)
+
+        self.title = obj_browser(capacity, 'Title')
+        self.abstract = obj_browser(capacity, 'Abstract')
+        self.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
 
         self.geometry = 'GeometryCollection'
+
 
     def authorized_geometry_type(self, val):
         return val in self.GEOMETRY_TYPE
@@ -127,16 +132,18 @@ class WfsResource(AbstractResource):
                     'CurvePropertyType': 'LineString',
                     'MultiCurvePropertyType': 'MultiLineString',
                     'GeometryPropertyType': 'GeometryCollection'}
-        return switcher.get(val, val)
+        return switcher.get(val, None)
 
     def set_geometry_column(self, geom_type):
         t = self.geometry_type_mapper(geom_type)
         if not self.authorized_geometry_type(t):
-            raise Exception("'{0}' is not an authorized geometry type".format(
-                                                                    geom_type))
+            raise Exception(
+                "'{0}' is not an authorized geometry type".format(geom_type))
         self.geometry = t
 
     def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
+        if self.geometry_type_mapper(column_type):
+            self.set_geometry_column(column_type)
         column_type and self.column_type_mapper(column_type)
         super().add_column(name, column_type=None, occurs=(0, 1), count=None)
 

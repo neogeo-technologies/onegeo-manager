@@ -212,7 +212,7 @@ class WfsSource(AbstractSource):
                                     'ServiceIdentification', 'Abstract')
         self.metadata_url = ''
 
-    def retreive_ft_meta(self, ft_name):
+    def _retreive_ft_meta(self, ft_name):
         for f in iter(self.capabilities['FeatureTypeList']['FeatureType']):
             if f['Name'].split(':')[-1] == ft_name:
                 return f
@@ -227,14 +227,7 @@ class WfsSource(AbstractSource):
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
                                         for m in desc['schema']['element']]):
 
-            capacity = self.retreive_ft_meta(elt[0])
-
             resource = Resource(self, elt[0])
-
-            resource.title = obj_browser(capacity, 'Title')
-            resource.abstract = obj_browser(capacity, 'Abstract')
-            resource.metadata_url = obj_browser(
-                                            capacity, 'MetadataURL', '@href')
 
             ct = None
             for complex_type in iter(desc['schema']['complexType']):
@@ -247,11 +240,7 @@ class WfsSource(AbstractSource):
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None
                 o = ('@minOccurs' in e and int(e['@minOccurs']) or 0,
                      '@maxOccurs' in e and int(e['@maxOccurs']) or 1)
-
-                if n in ['msGeometry', 'geometry']:  # TODO: Comment être sûr...
-                    resource.set_geometry_column(t)
-                else:
-                    resource.add_column(n, column_type=t, occurs=o)
+                resource.add_column(n, column_type=t, occurs=o)
 
             resources.append(resource)
         return resources
@@ -264,7 +253,7 @@ class WfsSource(AbstractSource):
         :return: Un générateur contenant des GeoJSON.
         """
 
-        capacity = self.retreive_ft_meta(resource_name)
+        capacity = self._retreive_ft_meta(resource_name)
 
         params = {'version': self.capabilities['@version']}
 
