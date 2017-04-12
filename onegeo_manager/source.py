@@ -15,8 +15,9 @@ __all__ = ['Source']
 
 class AbstractSource(metaclass=ABCMeta):
 
-    def __init__(self, uri, name):
+    def __init__(self, uri, name, mode):
         self.uri = uri
+        self.mode = mode
 
         s = search('^[a-z0-9_]{2,100}$', name)
         if not s:
@@ -36,8 +37,8 @@ class AbstractSource(metaclass=ABCMeta):
 
 class CswSource(AbstractSource):
 
-    def __init__(self, url, name):
-        super().__init__(url, name)
+    def __init__(self, url, name, mode):
+        super().__init__(url, name, mode)
 
         self.capabilities = self.__get_capabilities()['Capabilities']
 
@@ -84,8 +85,8 @@ class CswSource(AbstractSource):
 
 class GeonetSource(AbstractSource):
 
-    def __init__(self, url, name):
-        super().__init__(url, name)
+    def __init__(self, url, name, mode):
+        super().__init__(url, name, mode)
 
         params = {'fast': 'true', 'from': 0, 'to': 0}
         self.summary = self.__search(**params)['response']['summary']
@@ -123,13 +124,13 @@ class PdfSource(AbstractSource):
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
 
-    def __init__(self, path, name):
+    def __init__(self, path, name, mode):
 
         self.__p = Path(path.startswith('file://') and path[7:] or path)
         if not self.__p.exists():
             raise ConnectionError('The given path does not exist.')
 
-        super().__init__(self.__p.as_uri(), name)
+        super().__init__(self.__p.as_uri(), name, mode)
 
     def _iter_pdf_path(self, subdir_name=None):
         if subdir_name:
@@ -200,8 +201,8 @@ class PdfSource(AbstractSource):
 
 class WfsSource(AbstractSource):
 
-    def __init__(self, url, name):
-        super().__init__(url, name)
+    def __init__(self, url, name, mode):
+        super().__init__(url, name, mode)
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
@@ -322,5 +323,5 @@ class Source:
             raise ValueError('Unrecognized mode.')
 
         self = object.__new__(cls)
-        self.__init__(uri, name)
+        self.__init__(uri, name, mode)
         return self

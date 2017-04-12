@@ -400,7 +400,8 @@ class GeonetContext(AbstractContext):
                        'origin': {
                            'source': {
                                'name': self.resource.source.name,
-                               'uri': self.resource.source.uri},
+                               'uri': self.resource.source.uri,
+                               'mode': self.resource.source.mode},
                            'resource': {
                                'name': self.resource.name}},
                        'uri': uri}
@@ -522,7 +523,8 @@ class PdfContext(AbstractContext):
                        'origin': {
                            'source': {
                                'name': self.resource.source.name,
-                               'uri': self.resource.source.uri},
+                               'uri': self.resource.source.uri,
+                               'mode': self.resource.source.mode},
                            'resource': {
                                'name': self.resource.name}}}
 
@@ -664,7 +666,8 @@ class WfsContext(AbstractContext):
                                'title': self.resource.source.title,
                                'abstract': self.resource.source.abstract,
                                'metadata_url': self.resource.source.metadata_url,
-                               'uri': self.resource.source.uri},
+                               'uri': self.resource.source.uri,
+                               'mode': self.resource.source.mode},
                            'resource': {
                                'name': self.resource.name,
                                'title': self.resource.title,
