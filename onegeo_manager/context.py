@@ -397,6 +397,7 @@ class GeonetContext(AbstractContext):
 
                 yield {'data': e,
                        'meta': meta,
+                       'uuid': e['info']['uuid'],
                        'origin': {
                            'source': {
                                'name': self.resource.source.name,
@@ -451,6 +452,11 @@ class GeonetContext(AbstractContext):
                                     'store': False,
                                     'type': 'keyword'}}}}},
                 'uri': {
+                    'include_in_all': False,
+                    'index': 'not_analyzed',
+                    'store': False,
+                    'type': 'keyword'},
+                'uuid': {
                     'include_in_all': False,
                     'index': 'not_analyzed',
                     'store': False,
