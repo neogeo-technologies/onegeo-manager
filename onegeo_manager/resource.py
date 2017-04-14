@@ -144,8 +144,10 @@ class WfsResource(AbstractResource):
     def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
         if self.geometry_type_mapper(column_type):
             self.set_geometry_column(column_type)
-        column_type and self.column_type_mapper(column_type)
-        super().add_column(name, column_type=None, occurs=(0, 1), count=None)
+        else:
+            column_type and self.column_type_mapper(column_type)
+            super().add_column(
+                        name, column_type=None, occurs=(0, 1), count=None)
 
 
 class Resource:
