@@ -355,7 +355,7 @@ class AbstractContext(metaclass=ABCMeta):
     #         self.__preview.append(name)
 
     @abstractmethod
-    def generate_elastic_mapping(self, parent=None):
+    def generate_elastic_mapping(self):
         raise NotImplementedError('This is an abstract method. '
                                   "You can't do anything with it.")
 
@@ -388,24 +388,25 @@ class GeonetContext(AbstractContext):
 
         @wraps(f)
         def wrapper(self, *args, **kwargs):
-            for e in f(self, *args, **kwargs):
+            for doc in f(self, *args, **kwargs):
 
                 meta = dict((p.name, e[p.name]) for p in self.iter_properties())
                 uri = '{0}.metadata.get?uuid={1}'.format(
                             self.resource.source.uri.split('.search')[0],
                             e['info']['uuid'])
 
-                yield {'data': e,
-                       'meta': meta,
-                       'uuid': e['info']['uuid'],
-                       'origin': {
-                           'source': {
-                               'name': self.resource.source.name,
-                               'uri': self.resource.source.uri,
-                               'mode': self.resource.source.mode},
-                           'resource': {
-                               'name': self.resource.name}},
-                       'uri': uri}
+                yield {
+                    'properties': properties,
+                    'origin': {
+                        'resource': {
+                            'name': self.resource.name},
+                        'source': {
+                            'name': self.resource.source.name,
+                            'type': self.resource.source.mode,
+                            'uri': self.resource.source.uri},
+                        'uri': uri,
+                        'uuid': doc['info']['uuid']},
+                    'raw_data': doc}
 
         return wrapper
 
@@ -413,22 +414,34 @@ class GeonetContext(AbstractContext):
     def get_collection(self):
         return self.resource.source.get_collection(self.resource.name)
 
-    def generate_elastic_mapping(self, parent=None):
+    def generate_elastic_mapping(self):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
 
         mapping = {self.name: {
             'properties': {
-                'data': {
+                'raw_data': {
                     'dynamic': False,
                     'enabled': False,
                     'include_in_all': False,
                     'type': 'object'},
                 'origin': {
                     'properties': {
+                        'resource': {
+                            'properties': {
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}},
                         'source': {
                             'properties': {
+                                'mode': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
                                 'name': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
@@ -438,29 +451,17 @@ class GeonetContext(AbstractContext):
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
-                                    'type': 'keyword'},
-                                'mode': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
                                     'type': 'keyword'}}},
-                        'resource': {
-                            'properties': {
-                                'name': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'}}}}},
-                'uri': {
-                    'include_in_all': False,
-                    'index': 'not_analyzed',
-                    'store': False,
-                    'type': 'keyword'},
-                'uuid': {
-                    'include_in_all': False,
-                    'index': 'not_analyzed',
-                    'store': False,
-                    'type': 'keyword'}}}}
+                        'uri': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'},
+                        'uuid': {
+                            'include_in_all': False,
+                            'index': 'not_analyzed',
+                            'store': False,
+                            'type': 'keyword'}}}}}}
 
         if self.tags:
             mapping[self.name]['properties']['tags'] = {
@@ -488,10 +489,7 @@ class GeonetContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[self.name]['properties']['meta'] = {'properties': props}
-
-        if parent:
-            mapping[self.name]['_parent'] = {'type': parent}
+            mapping[self.name]['properties']['properties'] = {'properties': props}
 
         return clean_my_obj(mapping)
 
@@ -522,17 +520,18 @@ class PdfContext(AbstractContext):
                     new[prop.alias or prop.name] = v
                 return new
 
-            for e in f(self, *args, **kwargs):
-                yield {'data': e['data'],
-                       'filename': e['filename'],
-                       'meta': set_aliases(e['meta']),
-                       'origin': {
-                           'source': {
-                               'name': self.resource.source.name,
-                               'uri': self.resource.source.uri,
-                               'mode': self.resource.source.mode},
-                           'resource': {
-                               'name': self.resource.name}}}
+            for doc in f(self, *args, **kwargs):
+                yield {
+                    'origin': {
+                        'filename': doc['filename'],
+                        'resource': {
+                            'name': self.resource.name},
+                        'source': {
+                            'name': self.resource.source.name,
+                            'uri': self.resource.source.uri,
+                            'type': self.resource.source.mode}},
+                    'properties': set_aliases(doc['properties']),
+                    'raw_data': doc['file']}
 
         return wrapper
 
@@ -540,7 +539,7 @@ class PdfContext(AbstractContext):
     def get_collection(self):
         return self.resource.source.get_collection(self.resource.name)
 
-    def generate_elastic_mapping(self, parent=None):
+    def generate_elastic_mapping(self):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
@@ -554,22 +553,22 @@ class PdfContext(AbstractContext):
 
         if self.tags:
             mapping[self.name]['properties']['tags'] = {
-                    'analyzer': analyzer,
-                    'boost': 1.0,
-                    # 'doc_value'
-                    # 'eager_global_ordinals'
-                    # 'fields'
-                    # 'ignore_above'
-                    # 'include_in_all'
-                    'index': True,
-                    'index_options': 'docs',
-                    'norms': True,
-                    # 'null_value'
-                    'store': False,
-                    'search_analyzer': search_analyzer,
-                    'similarity': 'classic',
-                    'term_vector': 'yes',
-                    'type': 'keyword'}
+                                            'analyzer': analyzer,
+                                            'boost': 1.0,
+                                            # 'doc_value'
+                                            # 'eager_global_ordinals'
+                                            # 'fields'
+                                            # 'ignore_above'
+                                            # 'include_in_all'
+                                            'index': True,
+                                            'index_options': 'docs',
+                                            'norms': True,
+                                            # 'null_value'
+                                            'store': False,
+                                            'search_analyzer': search_analyzer,
+                                            'similarity': 'classic',
+                                            'term_vector': 'yes',
+                                            'type': 'keyword'}
 
         props = {}
         for p in self.iter_properties():
@@ -577,7 +576,7 @@ class PdfContext(AbstractContext):
             if p.column_type == 'pdf':
                 mapping[self.name]['properties']['attachment'] = {
                     'properties': {
-                        'data': {
+                        'content': {
                             'analyzer': p.analyzer,
                             'boost': p.weight,
                             # 'eager_global_ordinals'
@@ -609,33 +608,31 @@ class PdfContext(AbstractContext):
             mapping[self.name]['properties']['meta'] = {'properties': props}
 
         mapping[self.name]['properties']['origin'] = {
-            'properties': {
-                'source': {
-                    'properties': {
-                        'name': {
-                            'include_in_all': False,
-                            'index': 'not_analyzed',
-                            'store': False,
-                            'type': 'keyword'},
-                        'uri': {
-                            'include_in_all': False,
-                            'index': 'not_analyzed',
-                            'store': False, 'type': 'keyword'},
-                        'mode': {
-                            'include_in_all': False,
-                            'index': 'not_analyzed',
-                            'store': False,
-                            'type': 'keyword'}}},
-                'resource': {
-                    'properties': {
-                        'name': {
-                            'include_in_all': False,
-                            'index': 'not_analyzed',
-                            'store': False,
-                            'type': 'keyword'}}}}}
-
-        if parent:
-            mapping[self.name]['_parent'] = {'type': parent}
+                                    'properties': {
+                                        'resource': {
+                                            'properties': {
+                                                'name': {
+                                                    'include_in_all': False,
+                                                    'index': 'not_analyzed',
+                                                    'store': False,
+                                                    'type': 'keyword'}}},
+                                        'source': {
+                                            'properties': {
+                                                'name': {
+                                                    'include_in_all': False,
+                                                    'index': 'not_analyzed',
+                                                    'store': False,
+                                                    'type': 'keyword'},
+                                                'type': {
+                                                    'include_in_all': False,
+                                                    'index': 'not_analyzed',
+                                                    'store': False,
+                                                    'type': 'keyword'},
+                                                'uri': {
+                                                    'include_in_all': False,
+                                                    'index': 'not_analyzed',
+                                                    'store': False,
+                                                    'type': 'keyword'}}}}}
 
         return clean_my_obj(mapping)
 
@@ -663,22 +660,23 @@ class WfsContext(AbstractContext):
                     new[prop.alias or prop.name] = v
                 return new
 
-            for e in f(self, *args, **kwargs):
-                e['properties']= alias(e['properties'])
-                yield {'data': e,
-                       'origin': {
-                           'source': {
-                               'name': self.resource.source.name,
-                               'title': self.resource.source.title,
-                               'abstract': self.resource.source.abstract,
-                               'metadata_url': self.resource.source.metadata_url,
-                               'uri': self.resource.source.uri,
-                               'mode': self.resource.source.mode},
-                           'resource': {
-                               'name': self.resource.name,
-                               'title': self.resource.title,
-                               'abstract': self.resource.abstract,
-                               'metadata_url': self.resource.metadata_url}}}
+            for doc in f(self, *args, **kwargs):
+                yield {
+                    'origin': {
+                       'resource': {
+                           'name': self.resource.name,
+                           'title': self.resource.title,
+                           'abstract': self.resource.abstract,
+                           'metadata_url': self.resource.metadata_url},
+                       'source': {
+                           'name': self.resource.source.name,
+                           'title': self.resource.source.title,
+                           'abstract': self.resource.source.abstract,
+                           'metadata_url': self.resource.source.metadata_url,
+                           'uri': self.resource.source.uri,
+                           'mode': self.resource.source.mode}},
+                   'properties': alias(doc['properties']),
+                   'raw_data': doc}
 
         return wrapper
 
@@ -687,7 +685,7 @@ class WfsContext(AbstractContext):
         return self.resource.source.get_collection(
                                             self.resource.name, **opts)
 
-    def generate_elastic_mapping(self, parent=None):
+    def generate_elastic_mapping(self):
 
         analyzer = self.elastic_index.analyzer
         search_analyzer = self.elastic_index.search_analyzer
@@ -707,9 +705,14 @@ class WfsContext(AbstractContext):
 
         mapping = {self.name: {
             'properties': {
-                'data': {
+                'raw_data': {
                     'properties': {
                         'geometry': geometry_mapping,
+                        'properties': {
+                            'dynamic': False,
+                            'enabled': False,
+                            'include_in_all': False,
+                            'type': 'object'},
                         'type': {
                             'include_in_all': False,
                             'index': 'not_analyzed',
@@ -717,8 +720,40 @@ class WfsContext(AbstractContext):
                             'type': 'keyword'}}},
                 'origin': {
                     'properties': {
+                        'resource': {
+                            'properties': {
+                                'abstract': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'metadata_url': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'name': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'title': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'}}},
                         'source': {
                             'properties': {
+                                'abstract': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
+                                'metadata_url': {
+                                    'include_in_all': False,
+                                    'index': 'not_analyzed',
+                                    'store': False,
+                                    'type': 'keyword'},
                                 'name': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
@@ -729,44 +764,12 @@ class WfsContext(AbstractContext):
                                     'index': 'not_analyzed',
                                     'store': False,
                                     'type': 'keyword'},
-                                'abstract': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'metadata_url': {
+                                'type': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
                                     'type': 'keyword'},
                                 'uri': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'mode': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'}}},
-                        'resource': {
-                            'properties': {
-                                'name': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'title': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'abstract': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'metadata_url': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
@@ -798,11 +801,9 @@ class WfsContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[self.name]['properties'] \
-                    ['data']['properties']['properties'] = {'properties': props}
+            mapping[self.name]['properties']['properties'] = {
+                                                        'properties': props}
 
-        if parent:
-            mapping[self.name]['_parent'] = {'type': parent}
 
         return clean_my_obj(mapping)
 

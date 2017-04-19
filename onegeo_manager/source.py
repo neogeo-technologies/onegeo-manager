@@ -194,9 +194,9 @@ class PdfSource(AbstractSource):
 
         for path in iter_pdf_path:
             f = open(path.as_posix(), 'rb')
-            yield {'data': b64encode(f.read()).decode('utf-8'),
+            yield {'file': b64encode(f.read()).decode('utf-8'),
                    'filename': path.name,
-                   'meta': format(dict(PdfFileReader(f).getDocumentInfo()))}
+                   'properties': format(dict(PdfFileReader(f).getDocumentInfo()))}
 
 
 class WfsSource(AbstractSource):
