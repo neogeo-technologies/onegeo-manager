@@ -390,10 +390,12 @@ class GeonetContext(AbstractContext):
         def wrapper(self, *args, **kwargs):
             for doc in f(self, *args, **kwargs):
 
-                meta = dict((p.name, e[p.name]) for p in self.iter_properties())
+                properties = dict(
+                        (p.name, doc[p.name]) for p in self.iter_properties())
+
                 uri = '{0}.metadata.get?uuid={1}'.format(
                             self.resource.source.uri.split('.search')[0],
-                            e['info']['uuid'])
+                            doc['info']['uuid'])
 
                 yield {
                     'properties': properties,
