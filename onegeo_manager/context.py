@@ -30,7 +30,6 @@ def fetch_mapping(p):
                     # 'eager_global_ordinals'
                     # 'fields'
                     # 'ignore_above'
-                    'include_in_all': False,
                     'index': False,
                     'index_options': 'freqs',
                     'norms': True,
