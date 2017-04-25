@@ -25,9 +25,19 @@ def fetch_mapping(p):
             # 'fielddata_frequency_filter'
             'fields': {
                 'keyword': {
-                    'index': 'not_analyzed',
-                    'type': 'keyword',
-                    'store': False}},
+                    # 'boost',
+                    # 'doc_value'
+                    # 'eager_global_ordinals'
+                    # 'fields'
+                    # 'ignore_above'
+                    'include_in_all': False,
+                    'index': False,
+                    'index_options': 'freqs',
+                    'norms': True,
+                    # 'null_value'
+                    'store': False,
+                    'similarity': 'classic',
+                    'type': 'keyword'}},
             'include_in_all': False,
             'index': True,
             'index_options': 'offsets',
@@ -38,11 +48,10 @@ def fetch_mapping(p):
             # 'search_quote_analyzer'
             'similarity': 'classic',
             'term_vector': 'yes',
-            'type': p.column_type}
+            'type': 'text'}
 
     if p.column_type == 'keyword':
         return {
-            'analyzer': p.analyzer,
             'boost': p.weight,
             # 'doc_value'
             # 'eager_global_ordinals'
@@ -54,9 +63,8 @@ def fetch_mapping(p):
             'norms': True,
             # 'null_value'
             'store': False,
-            'search_analyzer': p.search_analyzer,
             'similarity': 'classic',
-            'type': p.column_type}
+            'type': 'keyword'}
 
     if p.column_type in ('byte', 'double', 'double_range',
                   'float', 'float_range', 'half_float',
