@@ -616,7 +616,8 @@ class PdfContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[self.name]['properties']['meta'] = {'properties': props}
+            mapping[self.name]['properties']['properties'] = {
+                                                            'properties': props}
 
         mapping[self.name]['properties']['origin'] = {
                                     'properties': {
