@@ -387,7 +387,8 @@ class GeonetContext(AbstractContext):
     def __init__(self, name, elastic_index, resource):
 
         if not resource.__class__.__qualname__ == 'GeonetResource':
-            raise TypeError("Argument should be an instance of 'GeonetResource'.")
+            raise TypeError("Argument should be an "
+                            "instance of 'GeonetResource'.")
 
         super().__init__(name, elastic_index, resource)
 
@@ -498,7 +499,8 @@ class GeonetContext(AbstractContext):
             props[p.alias or p.name] = fetch_mapping(p)
 
         if props:
-            mapping[self.name]['properties']['properties'] = {'properties': props}
+            mapping[self.name]['properties']['properties'] = {
+                                                            'properties': props}
 
         return clean_my_obj(mapping)
 
