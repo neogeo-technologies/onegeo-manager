@@ -4,19 +4,18 @@ from functools import wraps
 from .utils import clean_my_obj
 
 
-__all__ = ['Context']
+__all__ = ['Context', 'PropertyColumn']
 
 
 def fetch_mapping(p):
 
-    if not p.searchable:
-        return {
-            'include_in_all': False,
-            'index': 'not_analyzed',
-            'store': False,
-            'type': p.column_type}
-
     if p.column_type == 'text':
+        if not p.searchable:
+            return {'include_in_all': False,
+                    'index': 'not_analyzed',
+                    'store': False,
+                    'type': 'text'}
+
         return {
             'analyzer': p.analyzer,
             'boost': p.weight,
@@ -66,9 +65,9 @@ def fetch_mapping(p):
             'type': 'keyword'}
 
     if p.column_type in ('byte', 'double', 'double_range',
-                  'float', 'float_range', 'half_float',
-                  'integer', 'integer_range', 'long',
-                  'long_range', 'scaled_float', 'short'):
+                         'float', 'float_range', 'half_float',
+                         'integer', 'integer_range', 'long',
+                         'long_range', 'scaled_float', 'short'):
         return {
             'coerce': True,
             'boost': p.weight,
@@ -225,10 +224,8 @@ class PropertyColumn:
         self.__weight = val
 
     def set_pattern(self, val):
-        if not self.__column_type == 'date':
-            return
-            # raise GenericException(
-            #             'Pattern attribute does not exist in this context.')
+        # if not self.__column_type == 'date':
+        #     raise Exception('Pattern attribute does not exist in this context.')
         self.__pattern = val
 
     def set_analyzer(self, val):
@@ -309,33 +306,58 @@ class AbstractContext(metaclass=ABCMeta):
     def iter_properties(self):
         return iter(self.__properties)
 
+    def get_properties(self):
+        return [prop.all() for prop in self.iter_properties()]
+
     def get_property(self, name):
         for p in self.iter_properties():
             if p.name == name:
                 return p
 
-    def update_property(self, name, **params):
+    def update_property(self, name, param, value):
         for p in self.iter_properties():
             if p.name == name:
-                for k, v in params.items():
-                    if k == 'alias':
-                        p.set_alias(v)
-                    if k in ('column_type', 'type'):
-                        p.set_column_type(v)
-                    if k == 'occurs':
-                        p.set_occurs(v)
-                    if k == 'rejected':
-                        p.is_rejected(v)
-                    if k == 'searchable':
-                        p.is_searchable(v)
-                    if k == 'weight':
-                        p.set_weight(v)
-                    if k == 'pattern':
-                        p.set_pattern(v)
-                    if k == 'analyzer':
-                        p.set_analyzer(v)
-                    if k == 'search_analyzer':
-                        p.set_search_analyzer(v)
+                if param == 'alias':
+                    p.set_alias(value)
+                if param in ('column_type', 'type'):
+                    p.set_column_type(value)
+                if param == 'occurs':
+                    p.set_occurs(value)
+                if param == 'rejected':
+                    p.is_rejected(value)
+                if param == 'searchable':
+                    p.is_searchable(value)
+                if param == 'weight':
+                    p.set_weight(value)
+                if param == 'pattern':
+                    p.set_pattern(value)
+                if param == 'analyzer':
+                    p.set_analyzer(value)
+                if param == 'search_analyzer':
+                    p.set_search_analyzer(value)
+
+    # def update_property(self, name, **params):
+    #     for p in self.iter_properties():
+    #         if p.name == name:
+    #             for k, v in params.items():
+    #                 if k == 'alias':
+    #                     p.set_alias(v)
+    #                 if k in ('column_type', 'type'):
+    #                     p.set_column_type(v)
+    #                 if k == 'occurs':
+    #                     p.set_occurs(v)
+    #                 if k == 'rejected':
+    #                     p.is_rejected(v)
+    #                 if k == 'searchable':
+    #                     p.is_searchable(v)
+    #                 if k == 'weight':
+    #                     p.set_weight(v)
+    #                 if k == 'pattern':
+    #                     p.set_pattern(v)
+    #                 if k == 'analyzer':
+    #                     p.set_analyzer(v)
+    #                 if k == 'search_analyzer':
+    #                     p.set_search_analyzer(v)
 
     def iter_tags(self):
         return iter(self.__tags)
@@ -609,6 +631,7 @@ class PdfContext(AbstractContext):
                             'similarity': 'classic',
                             'term_vector': 'yes',
                             'type': 'text'}}}
+                continue
 
             if p.rejected:
                 continue
