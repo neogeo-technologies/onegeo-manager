@@ -99,9 +99,8 @@ class GeonetSource(AbstractSource):
                         {'name': 'title', 'column_type': 'keyword'},
                         {'name': 'abstract', 'column_type': 'text'},
                         {'name': 'keyword', 'column_type': 'keyword'},
-                        # {'name': 'category', 'column_type': 'keyword'},
-                        # {'name': 'createDate', 'column_type': 'date'}
-                        ))
+                        {'name': 'info/category', 'column_type': 'keyword'},
+                        {'name': 'info/createDate', 'column_type': 'date'}))
             resources.append(resource)
         return resources
 

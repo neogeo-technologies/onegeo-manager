@@ -421,8 +421,21 @@ class GeonetContext(AbstractContext):
         def wrapper(self, *args, **kwargs):
             for doc in f(self, *args, **kwargs):
 
-                properties = dict(
-                        (p.name, doc[p.name]) for p in self.iter_properties())
+                # TODO
+                # Retravailler cette partie car le résultat n'est pas
+                # forcement un string ce qui peut poser des problèmes
+                # lors de l'indexation...
+
+                def unnamed_fun(dct, lst):
+                    if len(lst) == 1:
+                        return dct[lst[0]]
+                    e = lst.pop(0)
+                    if e in dct:
+                        return unnamed_fun(dct[e], lst)
+                    return None
+
+                properties = dict((p.name, unnamed_fun(doc, p.name.split('/')))
+                                  for p in self.iter_properties())
 
                 uri = '{0}.metadata.get?uuid={1}'.format(
                             self.resource.source.uri.split('.search')[0],
