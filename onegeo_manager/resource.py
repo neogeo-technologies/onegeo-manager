@@ -63,6 +63,10 @@ class AbstractResource(metaclass=ABCMeta):
         self.__columns.append({'name': name, 'occurs': occurs,
                                'type': column_type, 'count': count})
 
+    def add_columns(self, columns):
+        for column in columns:
+            self.add_column(**column)
+
     def iter_column_name(self):
         return iter([c['name'] for c in self.__columns])
 
@@ -113,7 +117,6 @@ class WfsResource(AbstractResource):
         self.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
 
         self.geometry = 'GeometryCollection'
-
 
     def authorized_geometry_type(self, val):
         return val in self.GEOMETRY_TYPE
