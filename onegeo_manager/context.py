@@ -115,8 +115,9 @@ class PropertyColumn:
 
     COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
                    'double', 'double_range', 'float', 'float_range',
-                   'half_float', 'integer', 'integer_range', 'ip', 'keyword',
-                   'long', 'long_range', 'pdf', 'scaled_float', 'short', 'text']
+                   'half_float', 'integer', 'integer_range', 'ip',
+                   'keyword', 'long', 'long_range', 'pdf', 'scaled_float',
+                   'short', 'text']
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
@@ -469,7 +470,7 @@ class GeonetContext(AbstractContext):
                                     'type': 'keyword'}}},
                         'source': {
                             'properties': {
-                                'mode': {
+                                'type': {
                                     'include_in_all': False,
                                     'index': 'not_analyzed',
                                     'store': False,
@@ -522,7 +523,7 @@ class GeonetContext(AbstractContext):
 
         if props:
             mapping[self.name]['properties']['properties'] = {
-                                                            'properties': props}
+                                                        'properties': props}
 
         return clean_my_obj(mapping)
 
@@ -640,7 +641,7 @@ class PdfContext(AbstractContext):
 
         if props:
             mapping[self.name]['properties']['properties'] = {
-                                                            'properties': props}
+                                                        'properties': props}
 
         mapping[self.name]['properties']['origin'] = {
                                     'properties': {
@@ -709,9 +710,9 @@ class WfsContext(AbstractContext):
                            'abstract': self.resource.source.abstract,
                            'metadata_url': self.resource.source.metadata_url,
                            'uri': self.resource.source.uri,
-                           'mode': self.resource.source.mode}},
-                   'properties': alias(doc['properties']),
-                   'raw_data': doc}
+                           'type': self.resource.source.mode}},
+                    'properties': alias(doc['properties']),
+                    'raw_data': doc}
 
         return wrapper
 
@@ -838,7 +839,6 @@ class WfsContext(AbstractContext):
         if props:
             mapping[self.name]['properties']['properties'] = {
                                                         'properties': props}
-
 
         return clean_my_obj(mapping)
 
