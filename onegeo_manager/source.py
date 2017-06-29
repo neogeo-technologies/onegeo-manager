@@ -95,12 +95,30 @@ class GeonetSource(AbstractSource):
         resources = []
         for entry in self.summary['types']['type']:
             resource = Resource(self, entry['@name'])
-            resource.add_columns((
-                        {'name': 'title', 'column_type': 'keyword'},
-                        {'name': 'abstract', 'column_type': 'text'},
-                        {'name': 'keyword', 'column_type': 'keyword'},
-                        {'name': 'info/category', 'column_type': 'keyword'},
-                        {'name': 'info/createDate', 'column_type': 'date'}))
+            resource.add_columns(
+                ({
+                    'name': 'title',
+                    'column_type': 'keyword'
+                }, {
+                    'name': 'abstract',
+                    'column_type': 'text'
+                }, {
+                    'name': 'keyword',
+                    'column_type': 'keyword'
+                }, {
+                    'name': 'info/category',
+                    'column_type': 'keyword'
+                }, {
+                    'name': 'info/createDate',
+                    'column_type': 'date'
+                }, {
+                    'name': 'responsibleParty/organisationName',
+                    'column_type': 'text'
+                }, {
+                    'name': ('LegalConstraints[@preformatted=false]'
+                             '/useLimitation/CharacterString'),
+                    'column_type': 'keyword'
+                }))
             resources.append(resource)
         return resources
 
