@@ -112,11 +112,14 @@ class GeonetSource(AbstractSource):
                     'name': 'info/createDate',
                     'column_type': 'date'
                 }, {
+                    'name': 'info/changeDate',
+                    'column_type': 'date'
+                }, {
                     'name': 'responsibleParty/organisationName',
                     'column_type': 'text'
                 }, {
                     'name': ('LegalConstraints[@preformatted=false]'
-                             '/useLimitation/CharacterString'),
+                             '/useLimitation/CharacterString~^(\w+\s*)+$'),
                     'column_type': 'keyword'
                 }))
             resources.append(resource)

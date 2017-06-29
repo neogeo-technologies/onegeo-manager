@@ -1,3 +1,4 @@
+import re
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 
@@ -420,19 +421,35 @@ class GeonetContext(AbstractContext):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
 
-            def _p(obj, lst):
+            def set_aliases(properties):
+                new = {}
+                for k, v in properties.items():
+                    prop = self.get_property(k)
+                    if prop.rejected:
+                        continue
+                    new[prop.alias or prop.name] = v
+                return new
+
+            def ypath(obj, lst):
                 if type(obj) == list:
                     arr = []
                     for e in obj:
-                        val = _p(e, lst)
+                        val = ypath(e, lst)
                         if val:
                             arr.append(val)
                     return arr
 
                 if len(lst) == 1:
-                    if lst[0] not in obj:
+                    try:
+                        e, regex = tuple(lst[0].split('~'))
+                    except:
+                        e = lst[0]
+                    else:
+                        if not re.match(regex, obj[e]):
+                            return
+                    if e not in obj:
                         return None
-                    target = obj[lst[0]]
+                    target = obj[e]
                     if type(target) == list:
                         n = []
                         for m in target:
@@ -458,10 +475,10 @@ class GeonetContext(AbstractContext):
                 if type(obj) == dict and e in obj:
                     if k and (k in obj and obj[k] != v):
                         return
-                    return _p(obj[e], lst[1:])
+                    return ypath(obj[e], lst[1:])
 
             for doc in f(self, *args, **kwargs):
-                properties = dict((p.name, _p(doc, p.name.split('/')))
+                properties = dict((p.name, ypath(doc, p.name.split('/')))
                                   for p in self.iter_properties())
 
                 uri = '{0}.metadata.get?uuid={1}'.format(
@@ -469,7 +486,7 @@ class GeonetContext(AbstractContext):
                             doc['info']['uuid'])
 
                 yield {
-                    'properties': properties,
+                    'properties': set_aliases(properties),
                     'origin': {
                         'resource': {
                             'name': self.resource.name},
