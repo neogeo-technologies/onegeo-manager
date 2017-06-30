@@ -123,8 +123,9 @@ class PropertyColumn:
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
-                 analyzer=None, search_analyzer=None, count=None):
+                 analyzer=None, search_analyzer=None, count=None, rule=None):
 
+        self.__rule = rule
         self.__name = name
         self.__count = count
 
@@ -152,6 +153,10 @@ class PropertyColumn:
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE
+
+    @property
+    def rule(self):
+        return self.__rule
 
     @property
     def name(self):
@@ -199,6 +204,9 @@ class PropertyColumn:
 
     def set_alias(self, val):
         self.__alias = val
+
+    def set_rule(self, val):
+        self.__rule = val
 
     def set_column_type(self, val):
         if not self.authorized_column_type(val):
@@ -274,9 +282,11 @@ class AbstractContext(metaclass=ABCMeta):
         self.set_elastic_index(elastic_index)
 
         for c in self.resource.iter_columns():
-            self.__properties.append(PropertyColumn(
-                                c['name'], column_type=c['type'],
-                                occurs=c['occurs'], count=c['count']))
+            self.__properties.append(PropertyColumn(c['name'],
+                                                    column_type=c['type'],
+                                                    count=c['count'],
+                                                    occurs=c['occurs'],
+                                                    rule=c['rule']))
 
     @property
     def name(self):
@@ -334,6 +344,8 @@ class AbstractContext(metaclass=ABCMeta):
                     p.set_weight(value)
                 if param == 'pattern':
                     p.set_pattern(value)
+                if param == 'rule':
+                    p.set_rule(value)
                 if param == 'analyzer':
                     p.set_analyzer(value)
                 if param == 'search_analyzer':
@@ -479,8 +491,11 @@ class GeonetContext(AbstractContext):
                     return ypath(obj[e], lst[1:])
 
             for doc in f(self, *args, **kwargs):
-                properties = dict((p.name, ypath(doc, p.name.split('/')))
-                                  for p in self.iter_properties())
+
+                properties = {}
+                for p in self.iter_properties():
+                    res = ypath(doc, p.rule and p.rule.split('/') or [p.name])
+                    properties[p.name] = (len(res) == 1) and res[0] or res
 
                 url = urlparse(self.resource.source.uri, allow_fragments=False)
 

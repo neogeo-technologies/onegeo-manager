@@ -46,7 +46,8 @@ class AbstractResource(metaclass=ABCMeta):
     def iter_columns(self):
         return iter(self.__columns)
 
-    def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
+    def add_column(self, name, column_type=None,
+                   occurs=(0, 1), count=None, rule=None):
 
         if self.is_existing_column(name):
             raise Exception(
@@ -60,8 +61,8 @@ class AbstractResource(metaclass=ABCMeta):
         if self.authorized_occurs(occurs):
             raise Exception("'{0}' is malformed".format(occurs))
 
-        self.__columns.append({'name': name, 'occurs': occurs,
-                               'type': column_type, 'count': count})
+        self.__columns.append({'name': name, 'occurs': occurs, 'count': count,
+                               'type': column_type, 'rule': rule})
 
     def add_columns(self, columns):
         for column in columns:

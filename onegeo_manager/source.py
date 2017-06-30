@@ -106,21 +106,26 @@ class GeonetSource(AbstractSource):
                         'name': 'keyword',
                         'column_type': 'keyword'
                     }, {
-                        'name': 'info/category',
-                        'column_type': 'keyword'
+                        'name': 'category',
+                        'column_type': 'keyword',
+                        'rule': 'info/category'
                     }, {
-                        'name': 'info/createDate',
-                        'column_type': 'date'
+                        'name': 'createDate',
+                        'column_type': 'date',
+                        'rule': 'info/createDate'
                     }, {
-                        'name': 'info/changeDate',
-                        'column_type': 'date'
+                        'name': 'changeDate',
+                        'column_type': 'date',
+                        'rule': 'info/changeDate'
                     }, {
-                        'name': 'responsibleParty/organisationName',
-                        'column_type': 'text'
+                        'name': 'publisher',
+                        'column_type': 'text',
+                        'rule': 'responsibleParty/organisationName'
                     }, {
-                        'name': ('LegalConstraints[@preformatted=false]'
-                                 '/useLimitation/CharacterString~^(\w+\s*)+$'),
-                        'column_type': 'keyword'
+                        'name': 'rights',
+                        'column_type': 'keyword',
+                        'rule': ('LegalConstraints[@preformatted=false]'
+                                 '/useLimitation/CharacterString~^(\w+\s*)+$')
                     }))
             if entry['@name'] == 'nonGeographicDataset':
                 resource.add_columns(
@@ -134,14 +139,17 @@ class GeonetSource(AbstractSource):
                         'name': 'keyword',
                         'column_type': 'keyword'
                     }, {
-                        'name': 'info/category',
-                        'column_type': 'keyword'
+                        'name': 'category',
+                        'column_type': 'keyword',
+                        'rule': 'info/category'
                     }, {
-                        'name': 'info/createDate',
-                        'column_type': 'date'
+                        'name': 'createDate',
+                        'column_type': 'date',
+                        'rule': 'info/createDate'
                     }, {
-                        'name': 'info/changeDate',
-                        'column_type': 'date'
+                        'name': 'changeDate',
+                        'column_type': 'date',
+                        'rule': 'info/changeDate'
                     }, {
                         'name': 'publisher',
                         'column_type': 'text'
