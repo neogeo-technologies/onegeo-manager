@@ -110,11 +110,11 @@ class GeonetSource(AbstractSource):
                         'column_type': 'keyword',
                         'rule': 'info/category'
                     }, {
-                        'name': 'createDate',
+                        'name': 'create_date',
                         'column_type': 'date',
                         'rule': 'info/createDate'
                     }, {
-                        'name': 'changeDate',
+                        'name': 'change_date',
                         'column_type': 'date',
                         'rule': 'info/changeDate'
                     }, {
@@ -143,11 +143,11 @@ class GeonetSource(AbstractSource):
                         'column_type': 'keyword',
                         'rule': 'info/category'
                     }, {
-                        'name': 'createDate',
+                        'name': 'create_date',
                         'column_type': 'date',
                         'rule': 'info/createDate'
                     }, {
-                        'name': 'changeDate',
+                        'name': 'change_date',
                         'column_type': 'date',
                         'rule': 'info/changeDate'
                     }, {
@@ -155,7 +155,7 @@ class GeonetSource(AbstractSource):
                         'column_type': 'text'
                     }, {
                         'name': 'rights',
-                        'column_type': 'text'
+                        'column_type': 'keyword'
                     }))
 
             resources.append(resource)
