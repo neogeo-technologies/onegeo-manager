@@ -1,9 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from base64 import b64encode
 from pathlib import Path
-from re import search
-
 from PyPDF2 import PdfFileReader
+from re import search
 
 from .method import CswMethod, GeonetMethod, WfsMethod
 from .resource import Resource
@@ -95,33 +94,62 @@ class GeonetSource(AbstractSource):
         resources = []
         for entry in self.summary['types']['type']:
             resource = Resource(self, entry['@name'])
-            resource.add_columns(
-                ({
-                    'name': 'title',
-                    'column_type': 'keyword'
-                }, {
-                    'name': 'abstract',
-                    'column_type': 'text'
-                }, {
-                    'name': 'keyword',
-                    'column_type': 'keyword'
-                }, {
-                    'name': 'info/category',
-                    'column_type': 'keyword'
-                }, {
-                    'name': 'info/createDate',
-                    'column_type': 'date'
-                }, {
-                    'name': 'info/changeDate',
-                    'column_type': 'date'
-                }, {
-                    'name': 'responsibleParty/organisationName',
-                    'column_type': 'text'
-                }, {
-                    'name': ('LegalConstraints[@preformatted=false]'
-                             '/useLimitation/CharacterString~^(\w+\s*)+$'),
-                    'column_type': 'keyword'
-                }))
+            if entry['@name'] in ('dataset', 'series', 'service'):
+                resource.add_columns(
+                    ({
+                        'name': 'title',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'abstract',
+                        'column_type': 'text'
+                    }, {
+                        'name': 'keyword',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'info/category',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'info/createDate',
+                        'column_type': 'date'
+                    }, {
+                        'name': 'info/changeDate',
+                        'column_type': 'date'
+                    }, {
+                        'name': 'responsibleParty/organisationName',
+                        'column_type': 'text'
+                    }, {
+                        'name': ('LegalConstraints[@preformatted=false]'
+                                 '/useLimitation/CharacterString~^(\w+\s*)+$'),
+                        'column_type': 'keyword'
+                    }))
+            if entry['@name'] == 'nonGeographicDataset':
+                resource.add_columns(
+                    ({
+                        'name': 'title',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'abstract',
+                        'column_type': 'text'
+                    }, {
+                        'name': 'keyword',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'info/category',
+                        'column_type': 'keyword'
+                    }, {
+                        'name': 'info/createDate',
+                        'column_type': 'date'
+                    }, {
+                        'name': 'info/changeDate',
+                        'column_type': 'date'
+                    }, {
+                        'name': 'publisher',
+                        'column_type': 'text'
+                    }, {
+                        'name': 'rights',
+                        'column_type': 'text'
+                    }))
+
             resources.append(resource)
         return resources
 
@@ -252,7 +280,7 @@ class WfsSource(AbstractSource):
 
         resources = []
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
-                                        for m in desc['schema']['element']]):
+                         for m in desc['schema']['element']]):
 
             resource = Resource(self, elt[0])
 

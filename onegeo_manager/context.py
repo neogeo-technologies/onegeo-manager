@@ -1,6 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from functools import wraps
+from urllib.parse import urlparse
 
 from .utils import clean_my_obj
 
@@ -481,9 +482,23 @@ class GeonetContext(AbstractContext):
                 properties = dict((p.name, ypath(doc, p.name.split('/')))
                                   for p in self.iter_properties())
 
-                uri = '{0}.metadata.get?uuid={1}'.format(
-                            self.resource.source.uri.split('.search')[0],
-                            doc['info']['uuid'])
+                url = urlparse(self.resource.source.uri, allow_fragments=False)
+
+                # TODO: Gestion du basicAuth en amont
+                source_uri = '{schema}://{hostname}{port}{path}{params}'.format(
+                    schema=url.scheme,
+                    hostname=url.hostname,
+                    port=(url.port and ':{0}'.format(url.port) or ''),
+                    path=url.path,
+                    params=(url.params and '?{0}'.format(url.params) or ''))
+
+                metadata_uri = '{schema}://{hostname}{port}{path}'.format(
+                    schema=url.scheme,
+                    hostname=url.hostname,
+                    port=(url.port and ':{0}'.format(url.port) or ''),
+                    path='{0}.metadata.get?uuid={1}'.format(
+                                                url.path.split('.search')[0],
+                                                doc['info']['uuid']))
 
                 yield {
                     'properties': set_aliases(properties),
@@ -493,8 +508,8 @@ class GeonetContext(AbstractContext):
                         'source': {
                             'name': self.resource.source.name,
                             'type': self.resource.source.mode,
-                            'uri': self.resource.source.uri},
-                        'uri': uri,
+                            'uri': source_uri},
+                        'uri': metadata_uri,
                         'uuid': doc['info']['uuid']},
                     'raw_data': doc}
 
