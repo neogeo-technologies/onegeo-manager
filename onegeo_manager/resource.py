@@ -145,13 +145,14 @@ class WfsResource(AbstractResource):
                 "'{0}' is not an authorized geometry type".format(geom_type))
         self.geometry = t
 
-    def add_column(self, name, column_type=None, occurs=(0, 1), count=None):
+    def add_column(self, name, column_type=None,
+                   occurs=(0, 1), count=None, rule=None):
         if self.geometry_type_mapper(column_type):
             self.set_geometry_column(column_type)
         else:
             column_type and self.column_type_mapper(column_type)
             super().add_column(
-                        name, column_type=None, occurs=(0, 1), count=None)
+                name, column_type=None, occurs=(0, 1), count=None, rule=rule)
 
 
 class Resource:
