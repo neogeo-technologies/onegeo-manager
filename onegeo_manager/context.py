@@ -1,9 +1,9 @@
-import re
-from abc import ABCMeta, abstractmethod
-from functools import wraps
-from urllib.parse import urlparse
-
 from .utils import clean_my_obj
+from abc import ABCMeta
+from abc import abstractmethod
+from functools import wraps
+import re
+from urllib.parse import urlparse
 
 
 __all__ = ['Context', 'PropertyColumn']

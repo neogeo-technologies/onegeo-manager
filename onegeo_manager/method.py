@@ -23,13 +23,13 @@ class CswMethod(metaclass=StaticClass):
         if self.authorized_requests(self, request_name):
             params['REQUEST'] = request_name
         else:
-            raise ValueError('Request value \'{0}\' not authorized.'.format(
-                                                                request_name))
+            raise ValueError(
+                'Request value \'{0}\' not authorized.'.format(request_name))
 
         if 'VERSION' in params and not self.authorized_versions(
                 self, params['VERSION']):
-            raise ValueError('Version value \'{0}\' not authorized.'.format(
-                                                            params['VERSION']))
+            raise ValueError(
+                'Version value \'{0}\' not authorized.'.format(params['VERSION']))
 
         # return execute_aiohttp_get(url, **params)
         return execute_http_get(url, **params)
@@ -75,13 +75,13 @@ class WfsMethod(metaclass=StaticClass):
         if self.authorized_requests(self, request_name):
             params['REQUEST'] = request_name
         else:
-            raise ValueError('Request value \'{0}\' not authorized.'.format(
-                                                                request_name))
+            raise ValueError(
+                'Request value \'{0}\' not authorized.'.format(request_name))
 
         if 'VERSION' in params and not self.authorized_versions(
                 self, params['VERSION']):
-            raise ValueError('Version value \'{0}\' not authorized.'.format(
-                                                            params['VERSION']))
+            raise ValueError(
+                'Version value \'{0}\' not authorized.'.format(params['VERSION']))
 
         # return execute_aiohttp_get(url, **params)
         return execute_http_get(url, **params)

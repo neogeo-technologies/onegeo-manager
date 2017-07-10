@@ -1,6 +1,5 @@
-from abc import ABCMeta
-
 from .utils import obj_browser
+from abc import ABCMeta
 
 
 __all__ = ['Resource']
@@ -155,7 +154,7 @@ class WfsResource(AbstractResource):
                 name, column_type=None, occurs=(0, 1), count=None, rule=rule)
 
 
-class Resource:
+class Resource(object):
 
     def __new__(cls, source, name):
 

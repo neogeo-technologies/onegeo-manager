@@ -1,18 +1,17 @@
-from re import search, sub
+from re import search
+from re import sub
 
 
 def ows_response_converter(f):
 
+    from .exception import OGCExceptionReport
     from functools import wraps
     from neogeo_xml_utils import XMLToObj
-
-    from .exception import OGCExceptionReport
 
     @wraps(f)
     def wrapper(*args, **kwargs):
 
         response = f(*args, **kwargs)
-
         if not isinstance(response, str):
             return response
 
@@ -26,7 +25,7 @@ def ows_response_converter(f):
                 code = report['Exception']['@exceptionCode']
 
             raise OGCExceptionReport(
-                        code, report['Exception']['ExceptionText'])
+                code, report['Exception']['ExceptionText'])
 
         return data
     return wrapper
@@ -112,8 +111,8 @@ def clean_my_obj(obj):
         return type(obj)(clean_my_obj(x) for x in obj if x is not None)
     elif isinstance(obj, dict):
         return type(obj)(
-                (clean_my_obj(k), clean_my_obj(v))
-                    for k, v in obj.items() if k is not None and v is not None)
+            (clean_my_obj(k), clean_my_obj(v))
+            for k, v in obj.items() if k is not None and v is not None)
     else:
         return obj
 
@@ -130,9 +129,9 @@ def obj_browser(obj, *tag):
         if isinstance(obj[tag[0]], dict):
             return obj_browser(obj[tag[0]], *tag[1:])
         if isinstance(obj[tag[0]], list):
-            raise Exception() # TODO
+            raise Exception()  # TODO
         if isinstance(obj[tag[0]], str):
-            raise Exception() # TODO
+            raise Exception()  # TODO
 
 
 # Class types
@@ -141,7 +140,7 @@ class StaticClass(type):
 
     def __call__(cls):
         raise TypeError('\'{0}\' static class is not callable.'.format(
-                                                            cls.__qualname__))
+            cls.__qualname__))
 
 
 class Singleton(type):

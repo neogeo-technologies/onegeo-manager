@@ -1,7 +1,7 @@
 __all__ = ['Index']
 
 
-class Index:
+class Index(object):
 
     def __init__(self, name):
 

@@ -1,12 +1,15 @@
-from abc import ABCMeta, abstractmethod
+from .method import CswMethod
+from .method import GeonetMethod
+from .method import WfsMethod
+from .resource import Resource
+from .utils import obj_browser
+from .utils import ows_response_converter
+from abc import ABCMeta
+from abc import abstractmethod
 from base64 import b64encode
 from pathlib import Path
 from PyPDF2 import PdfFileReader
 from re import search
-
-from .method import CswMethod, GeonetMethod, WfsMethod
-from .resource import Resource
-from .utils import obj_browser, ows_response_converter
 
 
 __all__ = ['Source']
@@ -53,7 +56,7 @@ class CswSource(AbstractSource):
 
         if params['version'] != '2.0.2':
             raise NotImplemented(
-                    'Version {0} not implemented.'.format(params['VERSION']))
+                'Version {0} not implemented.'.format(params['VERSION']))
 
         params.update({
             'constraint': "type LIKE '{0}'".format(resource_name),
@@ -96,67 +99,49 @@ class GeonetSource(AbstractSource):
             resource = Resource(self, entry['@name'])
             if entry['@name'] in ('dataset', 'series', 'service'):
                 resource.add_columns(
-                    ({
-                        'name': 'title',
-                        'column_type': 'keyword'
-                    }, {
-                        'name': 'abstract',
-                        'column_type': 'text'
-                    }, {
-                        'name': 'keyword',
-                        'column_type': 'keyword'
-                    }, {
-                        'name': 'category',
-                        'column_type': 'keyword',
-                        'rule': 'info/category'
-                    }, {
-                        'name': 'create_date',
-                        'column_type': 'date',
-                        'rule': 'info/createDate'
-                    }, {
-                        'name': 'change_date',
-                        'column_type': 'date',
-                        'rule': 'info/changeDate'
-                    }, {
-                        'name': 'publisher',
-                        'column_type': 'text',
-                        'rule': 'responsibleParty/organisationName'
-                    }, {
-                        'name': 'rights',
-                        'column_type': 'keyword',
-                        'rule': ('LegalConstraints[@preformatted=false]'
-                                 '/useLimitation/CharacterString~^(\w+\s*)+$')
-                    }))
+                    ({'name': 'title',
+                      'column_type': 'keyword'},
+                     {'name': 'abstract',
+                      'column_type': 'text'},
+                     {'name': 'keyword',
+                      'column_type': 'keyword'},
+                     {'name': 'category',
+                      'column_type': 'keyword',
+                      'rule': 'info/category'},
+                     {'name': 'create_date',
+                      'column_type': 'date',
+                      'rule': 'info/createDate'},
+                     {'name': 'change_date',
+                      'column_type': 'date',
+                      'rule': 'info/changeDate'},
+                     {'name': 'publisher',
+                      'column_type': 'text',
+                      'rule': 'responsibleParty/organisationName'},
+                     {'name': 'rights',
+                      'column_type': 'keyword',
+                      'rule': ('LegalConstraints[@preformatted=false]'
+                               '/useLimitation/CharacterString~^(\w+\s*)+$')}))
             if entry['@name'] == 'nonGeographicDataset':
                 resource.add_columns(
-                    ({
-                        'name': 'title',
-                        'column_type': 'keyword'
-                    }, {
-                        'name': 'abstract',
-                        'column_type': 'text'
-                    }, {
-                        'name': 'keyword',
-                        'column_type': 'keyword'
-                    }, {
-                        'name': 'category',
-                        'column_type': 'keyword',
-                        'rule': 'info/category'
-                    }, {
-                        'name': 'create_date',
-                        'column_type': 'date',
-                        'rule': 'info/createDate'
-                    }, {
-                        'name': 'change_date',
-                        'column_type': 'date',
-                        'rule': 'info/changeDate'
-                    }, {
-                        'name': 'publisher',
-                        'column_type': 'text'
-                    }, {
-                        'name': 'rights',
-                        'column_type': 'keyword'
-                    }))
+                    ({'name': 'title',
+                      'column_type': 'keyword'},
+                     {'name': 'abstract',
+                      'column_type': 'text'},
+                     {'name': 'keyword',
+                      'column_type': 'keyword'},
+                     {'name': 'category',
+                      'column_type': 'keyword',
+                      'rule': 'info/category'},
+                     {'name': 'create_date',
+                      'column_type': 'date',
+                      'rule': 'info/createDate'},
+                     {'name': 'change_date',
+                      'column_type': 'date',
+                      'rule': 'info/changeDate'},
+                     {'name': 'publisher',
+                      'column_type': 'text'},
+                     {'name': 'rights',
+                      'column_type': 'keyword'}))
 
             resources.append(resource)
         return resources
@@ -259,7 +244,7 @@ class PdfSource(AbstractSource):
             yield {'file': b64encode(f.read()).decode('utf-8'),
                    'filename': '/'.join(path.parts[len(self.__p.parts):]),
                    'properties': format(
-                                    dict(PdfFileReader(f).getDocumentInfo()))}
+                       dict(PdfFileReader(f).getDocumentInfo()))}
 
 
 class WfsSource(AbstractSource):
@@ -270,10 +255,10 @@ class WfsSource(AbstractSource):
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
         self.title = obj_browser(
-                self.capabilities, 'ServiceIdentification', 'Title')
+            self.capabilities, 'ServiceIdentification', 'Title')
 
         self.abstract = obj_browser(
-                self.capabilities, 'ServiceIdentification', 'Abstract')
+            self.capabilities, 'ServiceIdentification', 'Abstract')
 
         self.metadata_url = ''
 
@@ -286,7 +271,7 @@ class WfsSource(AbstractSource):
     def get_resources(self):
 
         desc = self.__describe_feature_type(
-                                    version=self.capabilities['@version'])
+            version=self.capabilities['@version'])
 
         resources = []
         for elt in iter([(m['@name'], m['@type'].split(':')[-1])
@@ -311,20 +296,19 @@ class WfsSource(AbstractSource):
         return resources
 
     def get_collection(self, resource_name, count=100):
-        """
+        """Retourne la collection de document.
 
         :param resource_name: Le nom du type d'objets à retourner.
         :param count: Le pas de pagination du GetFeature (opt).
         :return: Un générateur contenant des GeoJSON.
         """
-
         capacity = self._retreive_ft_meta(resource_name)
 
         params = {'version': self.capabilities['@version']}
 
         if params['version'] != '2.0.0':
             raise NotImplemented(
-                    'Version {0} not implemented.'.format(params['VERSION']))
+                'Version {0} not implemented.'.format(params['VERSION']))
 
         crs_str = ','.join(capacity['OtherCRS'] + [capacity['DefaultCRS']])
         format_str = ','.join(capacity['OutputFormats']['Format'])
@@ -372,7 +356,7 @@ class WfsSource(AbstractSource):
         return WfsMethod.get_feature(self.uri, **params)
 
 
-class Source:
+class Source(object):
 
     def __new__(cls, uri, name, mode):
 
