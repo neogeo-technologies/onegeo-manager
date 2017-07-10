@@ -168,6 +168,8 @@ class GeonetSource(AbstractSource):
 
         while True:
             data = self.__search(**params)['response']['metadata']
+            if isinstance(data, dict):
+                data = [data]
             yield from data
             if len(data) < count:
                 break
