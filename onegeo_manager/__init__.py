@@ -4,9 +4,6 @@ from .source import *
 from .resource import *
 
 
-__version__ = '0.0.1'
-
-
 __all__ = [__version__,
            context.__all__,
            index.__all__,
