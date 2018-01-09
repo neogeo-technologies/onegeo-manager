@@ -1,5 +1,5 @@
-from .utils import obj_browser
 from abc import ABCMeta
+from importlib import import_module
 
 
 __all__ = ['Resource']
@@ -13,6 +13,10 @@ class AbstractResource(metaclass=ABCMeta):
                    'long', 'long_range', 'scaled_float', 'short', 'text']
 
     def __init__(self, source, name):
+
+        if not source.__class__.__qualname__ == 'Source':
+            raise TypeError("Argument should be an instance of 'Source'.")
+
         self.__source = source
         self.__name = name
         self.__columns = []
@@ -71,102 +75,16 @@ class AbstractResource(metaclass=ABCMeta):
         return iter([c['name'] for c in self.__columns])
 
     def is_existing_column(self, name):
-        return name in self.iter_column_name() and True or False
-
-
-class CswResource(AbstractResource):
-
-    def __init__(self, source, name):
-        super().__init__(source, name)
-
-    def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['object']
-
-
-class GeonetResource(AbstractResource):
-
-    def __init__(self, source, name):
-        super().__init__(source, name)
-
-    def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['object']
-
-
-class PdfResource(AbstractResource):
-
-    def __init__(self, source, name):
-        super().__init__(source, name)
-        self.add_column('data', column_type='pdf', occurs=(1, 1))
-
-    def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['pdf']
-
-
-class WfsResource(AbstractResource):
-
-    GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
-                     'LineString', 'MultiLineString', 'GeometryCollection']
-
-    def __init__(self, source, name):
-        super().__init__(source, name)
-
-        capacity = self.source._retreive_ft_meta(name)
-
-        self.title = obj_browser(capacity, 'Title')
-        self.abstract = obj_browser(capacity, 'Abstract')
-        self.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
-
-        self.geometry = 'GeometryCollection'
-
-    def authorized_geometry_type(self, val):
-        return val in self.GEOMETRY_TYPE
-
-    @staticmethod
-    def column_type_mapper(val):
-        switcher = {'string': 'text'}
-        return switcher.get(val, val)
-
-    @staticmethod
-    def geometry_type_mapper(val):
-        switcher = {'PointPropertyType': 'Point',
-                    'MultiPointPropertyType': 'MultiPoint',
-                    'SurfacePropertyType': 'Polygon',
-                    'MultiSurfacePropertyType': 'MultiPolygon',
-                    'CurvePropertyType': 'LineString',
-                    'MultiCurvePropertyType': 'MultiLineString',
-                    'GeometryPropertyType': 'GeometryCollection'}
-        return switcher.get(val, None)
-
-    def set_geometry_column(self, geom_type):
-        t = self.geometry_type_mapper(geom_type)
-        if not self.authorized_geometry_type(t):
-            raise Exception(
-                "'{0}' is not an authorized geometry type".format(geom_type))
-        self.geometry = t
-
-    def add_column(self, name, column_type=None,
-                   occurs=(0, 1), count=None, rule=None):
-        if self.geometry_type_mapper(column_type):
-            self.set_geometry_column(column_type)
-        else:
-            column_type and self.column_type_mapper(column_type)
-            super().add_column(
-                name, column_type=None, occurs=(0, 1), count=None, rule=rule)
+        return name in self.iter_column_name()
 
 
 class Resource(object):
 
-    def __new__(cls, source, name):
+    def __new__(self, source, name):
 
-        modes = {'CswSource': CswResource,
-                 'GeonetSource': GeonetResource,
-                 'PdfSource': PdfResource,
-                 'WfsSource': WfsResource}
+        ext = import_module(
+            'onegeo_manager.protocol.{0}'.format(source.protocol), __name__)
 
-        cls = modes.get(source.__class__.__qualname__, None)
-        if not cls:
-            raise ValueError('Unrecognized mode.')
-
-        self = object.__new__(cls)
+        self = object.__new__(ext.Resource)
         self.__init__(source, name)
         return self

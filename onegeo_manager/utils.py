@@ -4,9 +4,9 @@ from re import sub
 
 def ows_response_converter(f):
 
-    from .exception import OGCExceptionReport
     from functools import wraps
     from neogeo_xml_utils import XMLToObj
+    from onegeo_manager.exception import OGCExceptionReport
 
     @wraps(f)
     def wrapper(*args, **kwargs):
