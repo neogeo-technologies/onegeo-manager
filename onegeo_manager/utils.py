@@ -1,81 +1,60 @@
-from re import search
-from re import sub
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
 
 
-def ows_response_converter(f):
-
-    from functools import wraps
-    from neogeo_xml_utils import XMLToObj
-    from onegeo_manager.exception import OGCExceptionReport
-
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-
-        response = f(*args, **kwargs)
-        if not isinstance(response, str):
-            return response
-
-        data = XMLToObj(response, with_ns=False).data
-
-        if 'ExceptionReport' in data:
-            report = data['ExceptionReport']
-            if report['@version'] == '2.0.0':
-                code = report['Exception']['@exceptionCode']
-            else:
-                code = report['Exception']['@exceptionCode']
-
-            raise OGCExceptionReport(
-                code, report['Exception']['ExceptionText'])
-
-        return data
-    return wrapper
+from functools import wraps
+from neogeo_xml_utils import XMLToObj
+from onegeo_manager.exception import OGCExceptionReport
+import operator
+import re
+import requests
 
 
-# aiohttp stuffs
+class ResponseConverter(object):
 
-# async def aiohttp_fetcher(client, url, **params):
+    def __call__(self, f):
 
-#     from async_timeout import timeout
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            response = f(*args, **kwargs)
+            if not isinstance(response, str):
+                return response
 
-#     with timeout(10):
-#         async with client.get(url, **params) as r:
-#             if not r.status == 200:
-#                 r.raise_for_status()
+            data = XMLToObj(response, with_ns=False).data
 
-#             pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)+$'
-#             s = search(pattern, r.content_type)
-#             if s and s.group(2) == 'json':
-#                 return await r.json()
-#             elif s and s.group(2) == 'xml':
-#                 return await r.text()
-#             else:
-#                 # TODO
-#                 raise Exception('Error service response.')
+            if 'ExceptionReport' in data:
+                report = data['ExceptionReport']
+                if report['@version'] == '2.0.0':
+                    code = report['Exception']['@exceptionCode']
+                else:
+                    code = report['Exception']['@exceptionCode']
 
+                raise OGCExceptionReport(
+                    code, report['Exception']['ExceptionText'])
 
-# async def aiohttp_client(loop, url, **params):
+            return data
 
-#     from aiohttp import ClientSession
+        return wrapper
 
-#     async with ClientSession(loop=loop) as client:
-#         return await aiohttp_fetcher(client, url, **params)
-
-
-# def execute_aiohttp_get(url, **params):
-#     from asyncio import get_event_loop as loop
-#     return loop().run_until_complete(aiohttp_client(loop(), url, params=params))
-
-
-# Requests stuffs
 
 def execute_http_get(url, **params):
-
-    from requests import get
 
     e = None
     for i in range(0, 100):
         try:
-            r = get(url, params=params)
+            r = requests.get(url, params=params)
         except Exception as err:
             e = err
             continue
@@ -88,14 +67,13 @@ def execute_http_get(url, **params):
         r.raise_for_status()
 
     pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)+$'
-    s = search(pattern, r.headers['Content-Type'])
+    s = re.search(pattern, r.headers['Content-Type'])
     if s and s.group(2) == 'json':
         return r.json()
     elif s and s.group(2) == 'xml':
         return r.text
     else:
-        # TODO
-        raise Exception('Error service response.')
+        raise Exception('Error service response.', r.text)
 
 
 # Cool stuffs
@@ -118,20 +96,71 @@ def clean_my_obj(obj):
 
 
 def from_camel_was_born_snake(txt):
-    s1 = sub('(.)([A-Z][a-z]+)', '\g<1>_\g<2>', txt)
-    return sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>', s1).lower()
+    return re.sub('([a-z0-9])([A-Z])', '\g<1>_\g<2>',
+                  re.sub('(.)([A-Z][a-z]+)', '\g<1>_\g<2>', txt)).lower()
 
 
-def obj_browser(obj, *tag):
+def browse(obj, *tag):
     if tag[0] in obj:
-        if tag[0] == tag[-1]:
+        if len(tag) == 1:
             return obj[tag[0]]
         if isinstance(obj[tag[0]], dict):
-            return obj_browser(obj[tag[0]], *tag[1:])
+            return browse(obj[tag[0]], *tag[1:])
         if isinstance(obj[tag[0]], list):
-            raise Exception()  # TODO
-        if isinstance(obj[tag[0]], str):
-            raise Exception()  # TODO
+            cache = []
+            for i in range(len(obj[tag[0]])):
+                val = browse(obj[tag[0]][i], *tag[1:])
+                if val is not None:
+                    cache.append(val)
+            return cache
+
+
+def browse2(obj, lst):
+    if type(obj) == list:
+        arr = []
+        for e in obj:
+            val = browse2(e, lst)
+            if val:
+                arr.append(val)
+        return arr
+
+    if len(lst) == 1:
+        try:
+            e, regex = tuple(lst[0].split('~'))
+        except Exception:
+            e = lst[0]
+        else:
+            if not re.match(regex, obj[e]):
+                return
+        if e not in obj:
+            return None
+        target = obj[e]
+        if type(target) == list:
+            n = []
+            for m in target:
+                if type(m) == str:
+                    n.append(m or None)
+                if type(m) == list:
+                    operator.add(n, m)
+                if type(m) == dict:
+                    n.append(m['$'] or None)
+            target = n
+        return target
+
+    try:
+        k, v = tuple(lst[0].split('[')[-1][:-1].split('='))
+    except Exception:
+        e, k, v = lst[0], None, None
+    else:
+        e = lst[0].split('[')[0]
+
+    if type(obj) == dict and e not in obj:
+        return
+
+    if type(obj) == dict and e in obj:
+        if k and (k in obj and obj[k] != v):
+            return
+        return browse2(obj[e], lst[1:])
 
 
 # Class types
@@ -139,8 +168,8 @@ def obj_browser(obj, *tag):
 class StaticClass(type):
 
     def __call__(cls):
-        raise TypeError('\'{0}\' static class is not callable.'.format(
-            cls.__qualname__))
+        raise TypeError(
+            '\'{0}\' static class is not callable.'.format(cls.__qualname__))
 
 
 class Singleton(type):

@@ -1,3 +1,19 @@
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from abc import ABCMeta
 from abc import abstractmethod
 from importlib import import_module
@@ -6,14 +22,18 @@ from importlib import import_module
 __all__ = ['IndexProfile', 'PropertyColumn']
 
 
+not_searchable = lambda val: {
+    'include_in_all': False,
+    'index': 'not_analyzed',
+    'store': False,
+    'type': val}
+
+
 def fetch_mapping(p):
 
     if p.column_type == 'text':
         if not p.searchable:
-            return {'include_in_all': False,
-                    'index': 'not_analyzed',
-                    'store': False,
-                    'type': 'text'}
+            return not_searchable(p.column_type)
 
         return {
             'analyzer': p.analyzer,
@@ -116,211 +136,189 @@ class PropertyColumn(object):
                    'double', 'double_range', 'float', 'float_range',
                    'half_float', 'integer', 'integer_range', 'ip',
                    'keyword', 'long', 'long_range', 'pdf', 'scaled_float',
-                   'short', 'text']
+                   'short', 'text', 'object']
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
                  analyzer=None, search_analyzer=None, count=None, rule=None):
 
-        self.__rule = rule
-        self.__name = name
-        self.__count = count
+        self._rule = rule
+        self._name = name
+        self._count = count
 
-        self.__alias = None
-        self.__column_type = None
-        self.__occurs = None
-        self.__rejected = False
-        self.__searchable = True
-        self.__weight = None
-        self.__pattern = None
-        self.__analyzer = None
-        self.__search_analyzer = None
-
-        self.set_alias(alias)
-        self.set_column_type(column_type or 'text')
-        self.set_occurs(occurs)
-        self.is_rejected(rejected)
-        self.is_searchable(searchable)
-        if weight:
-            self.set_weight(weight)
-        if pattern:
-            self.set_pattern(pattern)
-        self.set_analyzer(analyzer)
-        self.set_search_analyzer(search_analyzer)
+        self._alias = alias
+        self._column_type = column_type or 'text'
+        self._occurs = occurs
+        self._rejected = rejected
+        self._searchable = searchable
+        self._weight = weight
+        self._pattern = pattern
+        self._analyzer = analyzer
+        self._search_analyzer = search_analyzer
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE
 
     @property
-    def rule(self):
-        return self.__rule
-
-    @property
     def name(self):
-        return self.__name
+        return self._name
 
     @property
     def count(self):
-        return self.__count
+        return self._count
 
     @property
     def alias(self):
-        return self.__alias
+        return self._alias
+
+    @alias.setter
+    def alias(self, val):
+        self._alias = val
 
     @property
     def column_type(self):
-        return self.__column_type
+        return self._column_type
+
+    @column_type.setter
+    def column_type(self, val):
+        if not self.authorized_column_type(val):
+            raise ValueError("Column type '{0}' not authorized.".format(val))
+        self._column_type = val
 
     @property
     def occurs(self):
-        return self.__occurs
+        return self._occurs
+
+    @occurs.setter
+    def occurs(self, val):
+        self._occurs = val
 
     @property
     def rejected(self):
-        return self.__rejected
+        return self._rejected
+
+    @rejected.setter
+    def rejected(self, val):
+        if not type(val) is bool:
+            raise TypeError('Input should be a boolean.')
+        self._rejected = val
 
     @property
     def searchable(self):
-        return self.__searchable
+        return self._searchable
+
+    @searchable.setter
+    def searchable(self, val):
+        if not type(val) is bool:
+            raise TypeError('Input should be a boolean.')
+        self._searchable = val
 
     @property
     def weight(self):
-        return self.__weight
+        return self._weight
 
-    @property
-    def pattern(self):
-        return self.__pattern
-
-    @property
-    def analyzer(self):
-        return self.__analyzer
-
-    @property
-    def search_analyzer(self):
-        return self.__search_analyzer
-
-    def set_alias(self, val):
-        self.__alias = val
-
-    def set_rule(self, val):
-        self.__rule = val
-
-    def set_column_type(self, val):
-        if not self.authorized_column_type(val):
-            raise TypeError(
-                "Column type '{0}' is not authorized.".format(val))
-        self.__column_type = val
-
-    def set_occurs(self, val):
-        self.__occurs = val
-
-    def is_rejected(self, val):
-        if not type(val) is bool:
-            raise TypeError('Input should be a boolean.')
-        self.__rejected = val
-
-    def is_searchable(self, val):
-        if not type(val) is bool:
-            raise TypeError('Input should be a boolean.')
-        self.__searchable = val
-
-    def set_weight(self, val):
+    @weight.setter
+    def weight(self, val):
         if val is None:
             return
         if not type(val) in [float, int]:
             raise TypeError('Input should be a float or int.')
-        self.__weight = val
+        self._weight = val
 
-    def set_pattern(self, val):
-        # if not self.__column_type == 'date':
+    @property
+    def pattern(self):
+        return self._pattern
+
+    @pattern.setter
+    def pattern(self, val):
+        # if not self._column_type == 'date':
         #     raise Exception('Pattern attribute does not exist in this context.')
-        self.__pattern = val
+        self._pattern = val
 
-    def set_analyzer(self, val):
+    @property
+    def analyzer(self):
+        return self._analyzer
+
+    @analyzer.setter
+    def analyzer(self, val):
         if val == '':
             val = None
-        self.__analyzer = val
+        self._analyzer = val
 
-    def set_search_analyzer(self, val):
+    @property
+    def search_analyzer(self):
+        return self._search_analyzer
+
+    @search_analyzer.setter
+    def search_analyzer(self, val):
         if val == '':
             val = None
-        self.__search_analyzer = val
+        self._search_analyzer = val
 
     def all(self):
-        return {'name': self.name,
-                'count': self.count,
-                'alias': self.alias,
-                'type': self.column_type,
-                'occurs': self.occurs,
-                'rejected': self.rejected,
-                'searchable': self.searchable,
-                'weight': self.weight,
-                'pattern': self.pattern,
-                'analyzer': self.analyzer,
-                'search_analyzer': self.search_analyzer}
+        # TODO: Utiliser vars() ou self.__dict__
+        return {'name': self._name,
+                'count': self._count,
+                'alias': self._alias,
+                'type': self._column_type,
+                'occurs': self._occurs,
+                'rejected': self._rejected,
+                'searchable': self._searchable,
+                'weight': self._weight,
+                'pattern': self._pattern,
+                'analyzer': self._analyzer,
+                'search_analyzer': self._search_analyzer}
 
 
 class AbstractIndexProfile(metaclass=ABCMeta):
 
     def __init__(self, name, elastic_index, resource):
 
-        self.__name = name
-
-        self.__tags = []
-        # self.__preview = []
-        self.__elastic_index = None
-        self.__resource = None
-        self.__properties = []
+        self._name = name
 
         if not resource.__class__.__qualname__ == 'Resource':
             raise TypeError("Argument should be an instance of 'Resource'.")
+        self._resource = resource
 
-        if not elastic_index.__class__.__qualname__ == 'Index':
-            raise TypeError("Argument should be an instance of 'Index'.")
+        if not elastic_index.__class__.__qualname__ == 'ElasticIndex':
+            raise \
+                TypeError("Argument should be an instance of 'ElasticIndex'.")
+        self._elastic_index = elastic_index
 
-        self.set_resource(resource)
-        self.set_elastic_index(elastic_index)
-
+        self._properties = []
         for c in self.resource.iter_columns():
-            self.__properties.append(PropertyColumn(c['name'],
-                                                    column_type=c['type'],
-                                                    count=c['count'],
-                                                    occurs=c['occurs'],
-                                                    rule=c['rule']))
+            self._properties.append(PropertyColumn(
+                c['name'], column_type=c['type'],
+                count=c['count'], occurs=c['occurs'], rule=c['rule']))
+
+        self._tags = []
+        # self._preview = []
 
     @property
     def name(self):
-        return self.__name
+        return self._name
 
     @property
     def resource(self):
-        return self.__resource
+        return self._resource
 
     @property
     def elastic_index(self):
-        return self.__elastic_index
-
-    @property
-    def tags(self):
-        return self.__tags
-
-    def set_resource(self, resource):
-        self.__resource = resource
-
-    def set_elastic_index(self, elastic_index):
-        self.__elastic_index = elastic_index
-
-    def set_property(self, p):
-        if not p.__class__.__qualname__ == 'PropertyColumn':
-            raise TypeError("Argument should be an "
-                            "instance of 'PropertyColumn'.")
-        self.__properties.append(p)
-
-    def iter_properties(self):
-        return iter(self.__properties)
+        return self._elastic_index
 
     def get_properties(self):
         return [prop.all() for prop in self.iter_properties()]
+
+    def iter_properties(self, ignore=[]):
+        if isinstance(ignore, list) and ignore:
+            return iter(p for p in self._properties if p.name not in ignore)
+        return iter(self._properties)
+
+    def set_property(self, p):
+        if not p.__class__.__qualname__ == 'PropertyColumn':
+            raise TypeError(
+                "Argument should be an instance of 'PropertyColumn'.")
+        self._properties.append(p)
 
     def get_property(self, name):
         for p in self.iter_properties():
@@ -331,72 +329,38 @@ class AbstractIndexProfile(metaclass=ABCMeta):
         for p in self.iter_properties():
             if p.name == name:
                 if param == 'alias':
-                    p.set_alias(value)
+                    p.alias(value)
                 if param in ('column_type', 'type'):
-                    p.set_column_type(value)
+                    p.column_type(value)
                 if param == 'occurs':
-                    p.set_occurs(value)
+                    p.occurs(value)
                 if param == 'rejected':
-                    p.is_rejected(value)
+                    p.rejected(value)
                 if param == 'searchable':
-                    p.is_searchable(value)
+                    p.searchable(value)
                 if param == 'weight':
-                    p.set_weight(value)
+                    p.weight(value)
                 if param == 'pattern':
-                    p.set_pattern(value)
+                    p.pattern(value)
                 if param == 'rule':
-                    p.set_rule(value)
+                    p.rule(value)
                 if param == 'analyzer':
-                    p.set_analyzer(value)
+                    p.analyzer(value)
                 if param == 'search_analyzer':
-                    p.set_search_analyzer(value)
+                    p.search_analyzer(value)
 
-    # def update_property(self, name, **params):
-    #     for p in self.iter_properties():
-    #         if p.name == name:
-    #             for k, v in params.items():
-    #                 if k == 'alias':
-    #                     p.set_alias(v)
-    #                 if k in ('column_type', 'type'):
-    #                     p.set_column_type(v)
-    #                 if k == 'occurs':
-    #                     p.set_occurs(v)
-    #                 if k == 'rejected':
-    #                     p.is_rejected(v)
-    #                 if k == 'searchable':
-    #                     p.is_searchable(v)
-    #                 if k == 'weight':
-    #                     p.set_weight(v)
-    #                 if k == 'pattern':
-    #                     p.set_pattern(v)
-    #                 if k == 'analyzer':
-    #                     p.set_analyzer(v)
-    #                 if k == 'search_analyzer':
-    #                     p.set_search_analyzer(v)
+    @property
+    def tags(self):
+        return self._tags
 
-    def iter_tags(self):
-        return iter(self.__tags)
-
-    def set_tags(self, lst):
+    @tags.setter
+    def tags(self, lst):
         if type(lst) is not list:
             raise TypeError('Input should be a list.')
-        self.__tags = lst
+        self._tags = lst
 
-    # def set_previews(self, l):
-    #
-    #     if type(l) is not list:
-    #         raise TypeError('Input should be a list.')
-    #
-    #     for name in iter(l):
-    #
-    #         if type(name) is not str:
-    #             raise TypeError('List values should be strings.')
-    #
-    #         if not self.resource.is_existing_column(name):
-    #             raise Exception(
-    #                         'Property \'{0}\' does not exist.'.format(name))
-    #
-    #         self.__preview.append(name)
+    def iter_tags(self):
+        return iter(self._tags)
 
     @abstractmethod
     def generate_elastic_mapping(self):

@@ -1,3 +1,19 @@
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from abc import ABCMeta
 from importlib import import_module
 
@@ -17,9 +33,9 @@ class AbstractResource(metaclass=ABCMeta):
         if not source.__class__.__qualname__ == 'Source':
             raise TypeError("Argument should be an instance of 'Source'.")
 
-        self.__source = source
-        self.__name = name
-        self.__columns = []
+        self._source = source
+        self._name = name
+        self._columns = []
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE
@@ -36,18 +52,18 @@ class AbstractResource(metaclass=ABCMeta):
 
     @property
     def source(self):
-        return self.__source
+        return self._source
 
     @property
     def name(self):
-        return self.__name
+        return self._name
 
     @property
     def columns(self):
-        return self.__columns
+        return self._columns
 
     def iter_columns(self):
-        return iter(self.__columns)
+        return iter(self._columns)
 
     def add_column(self, name, column_type=None,
                    occurs=(0, 1), count=None, rule=None):
@@ -58,24 +74,23 @@ class AbstractResource(metaclass=ABCMeta):
 
         if column_type and not self.authorized_column_type(column_type):
             raise TypeError(
-                "Column type '{0}' is not authorized.".format(column_type),
-                name)
+                "Column type '{0}' not authorized.".format(column_type), name)
 
         if self.authorized_occurs(occurs):
-            raise Exception("'{0}' is malformed".format(occurs))
+            raise ValueError("'{0}' is malformed".format(occurs))
 
-        self.__columns.append({'name': name, 'occurs': occurs, 'count': count,
-                               'type': column_type, 'rule': rule})
+        self._columns.append({'name': name, 'occurs': occurs, 'count': count,
+                              'type': column_type, 'rule': rule})
 
     def add_columns(self, columns):
         for column in columns:
             self.add_column(**column)
 
     def iter_column_name(self):
-        return iter([c['name'] for c in self.__columns])
+        return iter([c['name'] for c in self._columns])
 
-    def is_existing_column(self, name):
-        return name in self.iter_column_name()
+    def is_existing_column(self, val):
+        return val in self.iter_column_name()
 
 
 class Resource(object):

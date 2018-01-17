@@ -1,13 +1,30 @@
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from functools import wraps
 from onegeo_manager.index_profile import AbstractIndexProfile
 from onegeo_manager.index_profile import fetch_mapping
 from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
+from onegeo_manager.utils import browse2
 from onegeo_manager.utils import clean_my_obj
 from onegeo_manager.utils import execute_http_get
-from onegeo_manager.utils import ows_response_converter
+from onegeo_manager.utils import ResponseConverter
 from onegeo_manager.utils import StaticClass
-import re
+import operator
 from urllib.parse import urlparse
 
 
@@ -28,13 +45,13 @@ class Resource(AbstractResource):
         super().__init__(source, name)
 
     def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['object']
+        return val in operator.add(self.COLUMN_TYPE, ['object'])
 
 
 class Source(AbstractSource):
 
-    def __init__(self, url, name, protocol):
-        super().__init__(url, name, protocol)
+    def __init__(self, url, name):
+        super().__init__(url, name)
 
         params = {'fast': 'true', 'from': 0, 'to': 0}
         self.summary = self.__search(**params)['response']['summary']
@@ -117,7 +134,7 @@ class Source(AbstractSource):
             params['from'] += count
             params['to'] += count
 
-    @ows_response_converter
+    @ResponseConverter()
     def __search(self, **params):
         return Method.search(self.uri, **params)
 
@@ -125,11 +142,6 @@ class Source(AbstractSource):
 class IndexProfile(AbstractIndexProfile):
 
     def __init__(self, name, elastic_index, resource):
-
-        if not resource.__class__.__qualname__ == 'GeonetResource':
-            raise TypeError("Argument should be an "
-                            "instance of 'GeonetResource'.")
-
         super().__init__(name, elastic_index, resource)
 
     def _format(f):
@@ -146,58 +158,11 @@ class IndexProfile(AbstractIndexProfile):
                     new[prop.alias or prop.name] = v
                 return new
 
-            def ypath(obj, lst):
-                if type(obj) == list:
-                    arr = []
-                    for e in obj:
-                        val = ypath(e, lst)
-                        if val:
-                            arr.append(val)
-                    return arr
-
-                if len(lst) == 1:
-                    try:
-                        e, regex = tuple(lst[0].split('~'))
-                    except Exception:
-                        e = lst[0]
-                    else:
-                        if not re.match(regex, obj[e]):
-                            return
-                    if e not in obj:
-                        return None
-                    target = obj[e]
-                    if type(target) == list:
-                        n = []
-                        for m in target:
-                            if type(m) == str:
-                                n.append(m or None)
-                            if type(m) == list:
-                                n + m
-                            if type(m) == dict:
-                                n.append(m['$'] or None)
-                        target = n
-                    return target
-
-                try:
-                    k, v = tuple(lst[0].split('[')[-1][:-1].split('='))
-                except Exception:
-                    e, k, v = lst[0], None, None
-                else:
-                    e = lst[0].split('[')[0]
-
-                if type(obj) == dict and e not in obj:
-                    return
-
-                if type(obj) == dict and e in obj:
-                    if k and (k in obj and obj[k] != v):
-                        return
-                    return ypath(obj[e], lst[1:])
-
             for doc in f(self, *args, **kwargs):
 
                 properties = {}
                 for p in self.iter_properties():
-                    res = ypath(doc, p.rule and p.rule.split('/') or [p.name])
+                    res = browse2(doc, p.rule and p.rule.split('/') or [p.name])
                     if not res:
                         continue
                     properties[p.name] = (len(res) == 1) and res[0] or res

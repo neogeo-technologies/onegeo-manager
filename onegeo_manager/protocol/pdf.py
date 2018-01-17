@@ -1,3 +1,19 @@
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from base64 import b64encode
 from functools import wraps
 from onegeo_manager.index_profile import AbstractIndexProfile
@@ -5,6 +21,7 @@ from onegeo_manager.index_profile import fetch_mapping
 from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import clean_my_obj
+import operator
 from pathlib import Path
 from PyPDF2 import PdfFileReader
 
@@ -16,7 +33,7 @@ class Resource(AbstractResource):
         self.add_column('data', column_type='pdf', occurs=(1, 1))
 
     def authorized_column_type(self, val):
-        return val in self.COLUMN_TYPE + ['pdf']
+        return val in operator.add(self.COLUMN_TYPE, ['pdf'])
 
 
 class Source(AbstractSource):
@@ -24,13 +41,13 @@ class Source(AbstractSource):
     META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
                   'ModDate', 'Producer', 'Subject', 'Title')
 
-    def __init__(self, path, name, protocol):
+    def __init__(self, path, name):
 
         self.__p = Path(path.startswith('file://') and path[7:] or path)
         if not self.__p.exists():
             raise ConnectionError('The given path does not exist.')
 
-        super().__init__(self.__p.as_uri(), name, protocol)
+        super().__init__(self.__p.as_uri(), name)
 
     def _iter_pdf_path(self, subdir_name=None):
         if subdir_name:
@@ -131,7 +148,7 @@ class IndexProfile(AbstractIndexProfile):
                         'source': {
                             'name': self.resource.source.name,
                             'uri': self.resource.source.uri,
-                            'type': self.resource.source.protocol}},
+                            'protocol': self.resource.source.protocol}},
                     'properties': set_aliases(doc['properties']),
                     'raw_data': doc['file']}
 

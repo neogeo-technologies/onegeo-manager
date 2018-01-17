@@ -1,13 +1,32 @@
+# Copyright (c) 2017-2018 Neogeo-Technologies.
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+
 from functools import wraps
+from onegeo_manager.exception import UnexpectedError
 from onegeo_manager.index_profile import AbstractIndexProfile
 from onegeo_manager.index_profile import fetch_mapping
+from onegeo_manager.index_profile import not_searchable
 from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
+from onegeo_manager.utils import browse
 from onegeo_manager.utils import clean_my_obj
 from onegeo_manager.utils import execute_http_get
-from onegeo_manager.utils import obj_browser
-from onegeo_manager.utils import ows_response_converter
+from onegeo_manager.utils import ResponseConverter
 from onegeo_manager.utils import StaticClass
+import operator
 from re import search
 
 
@@ -26,18 +45,18 @@ class Method(metaclass=StaticClass):
     @staticmethod
     def get(self, request_name, url, **params):
 
-        params.update({'SERVICE': self.SERVICE})
+        params.update({'service': self.SERVICE})
 
         if self.authorized_requests(self, request_name):
-            params['REQUEST'] = request_name
+            params['request'] = request_name
         else:
-            raise ValueError(
+            raise UnexpectedError(
                 'Request value \'{0}\' not authorized.'.format(request_name))
 
-        if 'VERSION' in params and not self.authorized_versions(
-                self, params['VERSION']):
-            raise ValueError(
-                'Version value \'{0}\' not authorized.'.format(params['VERSION']))
+        if 'version' in params and not self.authorized_versions(
+                self, params['version']):
+            raise UnexpectedError(
+                'Version value \'{0}\' not authorized.'.format(params['version']))
 
         return execute_http_get(url, **params)
 
@@ -64,9 +83,9 @@ class Resource(AbstractResource):
 
         capacity = self.source._retreive_ft_meta(name)
 
-        self.title = obj_browser(capacity, 'Title')
-        self.abstract = obj_browser(capacity, 'Abstract')
-        self.metadata_url = obj_browser(capacity, 'MetadataURL', '@href')
+        self.title = browse(capacity, 'Title')
+        self.abstract = browse(capacity, 'Abstract')
+        self.metadata_url = browse(capacity, 'MetadataURL', '@href')
 
         self.geometry = 'GeometryCollection'
 
@@ -91,7 +110,7 @@ class Resource(AbstractResource):
     def set_geometry_column(self, geom_type):
         t = self.geometry_type_mapper(geom_type)
         if not self.authorized_geometry_type(t):
-            raise Exception(
+            raise UnexpectedError(
                 "'{0}' is not an authorized geometry type".format(geom_type))
         self.geometry = t
 
@@ -107,15 +126,15 @@ class Resource(AbstractResource):
 
 class Source(AbstractSource):
 
-    def __init__(self, url, name, protocol):
-        super().__init__(url, name, protocol)
+    def __init__(self, url, name):
+        super().__init__(url, name)
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
-        self.title = obj_browser(
+        self.title = browse(
             self.capabilities, 'ServiceIdentification', 'Title')
 
-        self.abstract = obj_browser(
+        self.abstract = browse(
             self.capabilities, 'ServiceIdentification', 'Abstract')
 
         self.metadata_url = ''
@@ -126,24 +145,34 @@ class Source(AbstractSource):
                 return f
         raise ValueError('{0} not found.'.format(ft_name))
 
-    def get_resources(self):
+    def get_resources(self, names=[]):
 
         desc = self.__describe_feature_type(
-            version=self.capabilities['@version'])
+            version=self.capabilities['@version'],
+            typename=','.join(names) or None)
+
+        sch_elts = desc['schema']['element']
+        sch_cplx_types = desc['schema']['complexType']
 
         resources = []
-        for elt in iter([(m['@name'], m['@type'].split(':')[-1])
-                         for m in desc['schema']['element']]):
+        for sch_elt in iter([
+                (m['@name'], m['@type'].split(':')[-1])
+                for m in isinstance(sch_elts, list)
+                and sch_elts or [sch_elts]]):
 
-            resource = Resource(self, elt[0])
+            resource = Resource(self, sch_elt[0])
 
             ct = None
-            for complex_type in iter(desc['schema']['complexType']):
-                if complex_type['@name'] == elt[1]:
-                    ct = complex_type
+            for cplx_type in iter(
+                    isinstance(sch_cplx_types, list)
+                    and sch_cplx_types or [sch_cplx_types]):
+
+                if cplx_type['@name'] == sch_elt[1]:
+                    ct = cplx_type
                     break
 
-            for e in ct['complexContent']['extension']['sequence']['element']:
+            seq_elt = ct['complexContent']['extension']['sequence']['element']
+            for e in isinstance(seq_elt, dict) and [seq_elt] or seq_elt:
                 n = '@name' in e and str(e['@name']) or None
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None
                 o = ('@minOccurs' in e and int(e['@minOccurs']) or 0,
@@ -153,60 +182,61 @@ class Source(AbstractSource):
             resources.append(resource)
         return resources
 
-    def get_collection(self, resource_name, count=100):
-        """Retourne la collection de documents.
+    def get_collection(self, resource_name, step=100):
 
-        :param resource_name: Le nom du type d'objets à retourner.
-        :param count: Le pas de pagination du GetFeature (opt).
-        :return: Un générateur contenant des GeoJSON.
-        """
         capacity = self._retreive_ft_meta(resource_name)
 
         params = {'version': self.capabilities['@version']}
 
         if params['version'] != '2.0.0':
-            raise NotImplemented(
-                'Version {0} not implemented.'.format(params['VERSION']))
+            raise UnexpectedError(
+                'Version {0} not implemented.'.format(params['version']))
 
-        crs_str = ','.join(capacity['OtherCRS'] + [capacity['DefaultCRS']])
-        format_str = ','.join(capacity['OutputFormats']['Format'])
+        other_crs = capacity.get('OtherCRS', [])
+        crs_str = ', '.join(
+            operator.add(
+                isinstance(other_crs, str) and [other_crs] or other_crs,
+                [capacity['DefaultCRS']]))
+
+        try:
+            format_str = ', '.join(capacity['OutputFormats']['Format'])
+        except KeyError:
+            format_str = None
 
         testing = {
             'srsname': {
                 'pattern': '((^|((\w*\:+)+))4326)',
                 'string': crs_str},
             'outputformat': {
-                'pattern': '((text|application)\/json\;?\s?subtype\=geojson)',
+                # Only GeoJSON format is supported
+                'pattern': '((text|application)\/json\;?\s?((\w+=[^,;]+|(subtype\=geojson))\;?\s?)*)',
                 'string': format_str}}
 
         for k, v in testing.items():
             s = search(v['pattern'], v['string'])
             if not s:
-                raise ValueError('TODO')  # TODO
+                raise UnexpectedError('GeoJSON Outputformat Not Found')
             params[k] = s.group(0)
 
-        params.update({'typenames': resource_name,
-                       'startindex': 0,
-                       'count': count})
+        params.update(
+            {'typenames': resource_name, 'startindex': 0, 'count': step})
 
         while True:
-            # Boucle sur le GetFeature tant que tous
-            # les objets ne sont pas recupérés.
             data = self.__get_feature(**params)['features']
             yield from data
-            if len(data) < count:
+            if len(data) < step:
                 break
-            params['startindex'] += count
+            params['startindex'] += step
 
-    @ows_response_converter
+    @ResponseConverter()
     def __get_capabilities(self, **params):
         return Method.get_capabilities(self.uri, **params)
 
-    @ows_response_converter
+    @ResponseConverter()
     def __describe_feature_type(self, **params):
         return Method.describe_feature_type(self.uri, **params)
 
-    @ows_response_converter
+    @ResponseConverter()
     def __get_feature(self, **params):
         return Method.get_feature(self.uri, **params)
 
@@ -216,9 +246,9 @@ class IndexProfile(AbstractIndexProfile):
     def __init__(self, name, elastic_index, resource):
         super().__init__(name, elastic_index, resource)
 
-    def _format(f):
+    def _format(fun):
 
-        @wraps(f)
+        @wraps(fun)
         def wrapper(self, *args, **kwargs):
 
             def alias(properties):
@@ -230,9 +260,10 @@ class IndexProfile(AbstractIndexProfile):
                     new[prop.alias or prop.name] = v
                 return new
 
-            for doc in f(self, *args, **kwargs):
+            for record in fun(self, *args, **kwargs):
                 yield {
-                    'origin': {
+                    'geometry': record.get('geometry'),
+                    'lineage': {
                         'resource': {
                             'name': self.resource.name,
                             'title': self.resource.title,
@@ -244,9 +275,8 @@ class IndexProfile(AbstractIndexProfile):
                             'abstract': self.resource.source.abstract,
                             'metadata_url': self.resource.source.metadata_url,
                             'uri': self.resource.source.uri,
-                            'type': self.resource.source.protocol}},
-                    'properties': alias(doc['properties']),
-                    'raw_data': doc}
+                            'protocol': self.resource.source.protocol}},
+                    'properties': alias(record['properties'])}
 
         return wrapper
 
@@ -256,12 +286,8 @@ class IndexProfile(AbstractIndexProfile):
 
     def generate_elastic_mapping(self):
 
-        analyzer = self.elastic_index.analyzer
-        search_analyzer = self.elastic_index.search_analyzer
-
         if self.resource.geometry in ('Point', 'MultiPoint'):
-            geometry_mapping = {'type': 'geo_point',
-                                'ignore_malformed': True}
+            geometry_mapping = {'type': 'geo_point', 'ignore_malformed': True}
         else:
             geometry_mapping = {'type': 'geo_shape',
                                 'tree': 'quadtree',
@@ -272,105 +298,47 @@ class IndexProfile(AbstractIndexProfile):
                                 'orientation': 'counterclockwise',
                                 'points_only': False}
 
-        mapping = {self.name: {
-            'properties': {
-                'raw_data': {
-                    'properties': {
-                        'geometry': geometry_mapping,
-                        'properties': {
-                            'dynamic': False,
-                            'enabled': False,
-                            'include_in_all': False,
-                            'type': 'object'},
-                        'type': {
-                            'include_in_all': False,
-                            'index': 'not_analyzed',
-                            'store': False,
-                            'type': 'keyword'}}},
-                'origin': {
-                    'properties': {
-                        'resource': {
-                            'properties': {
-                                'abstract': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'metadata_url': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'name': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'title': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'}}},
-                        'source': {
-                            'properties': {
-                                'abstract': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'metadata_url': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'name': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'title': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'type': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'},
-                                'uri': {
-                                    'include_in_all': False,
-                                    'index': 'not_analyzed',
-                                    'store': False,
-                                    'type': 'keyword'}}}}}}}}
-
-        if self.tags:
-            mapping[self.name]['properties']['tags'] = {
-                'analyzer': analyzer,
-                'boost': 1.0,
-                # 'doc_value'
-                # 'eager_global_ordinals'
-                # 'fields'
-                # 'ignore_above'
-                # 'include_in_all'
-                'index': True,
-                'index_options': 'docs',
-                'norms': True,
-                # 'null_value'
-                'store': False,
-                'search_analyzer': search_analyzer,
-                'similarity': 'classic',
-                'term_vector': 'yes',
-                'type': 'keyword'}
-
         props = {}
         for p in self.iter_properties():
-            if p.rejected:
-                continue
-            props[p.alias or p.name] = fetch_mapping(p)
+            if not p.rejected:
+                props[p.alias or p.name] = fetch_mapping(p)
 
-        if props:
-            mapping[self.name]['properties']['properties'] = {
-                'properties': props}
-
-        return clean_my_obj(mapping)
+        return clean_my_obj({
+            self.name: {
+                'properties': {
+                    'geometry': geometry_mapping,
+                    'lineage': {
+                        'properties': {
+                            'resource': {
+                                'properties': {
+                                    'abstract': not_searchable('keyword'),
+                                    'metadata_url': not_searchable('keyword'),
+                                    'name': not_searchable('keyword'),
+                                    'title': not_searchable('keyword')}},
+                            'source': {
+                                'properties': {
+                                    'abstract': not_searchable('keyword'),
+                                    'metadata_url': not_searchable('keyword'),
+                                    'name': not_searchable('keyword'),
+                                    'title': not_searchable('keyword'),
+                                    'type': not_searchable('keyword'),
+                                    'uri': not_searchable('keyword')}}}},
+                    'properties': {
+                        'properties': props},
+                    'tags': {
+                        'analyzer': self.elastic_index.analyzer,
+                        'boost': 1.0,
+                        # 'doc_value'
+                        # 'eager_global_ordinals'
+                        # 'fields'
+                        # 'ignore_above'
+                        # 'include_in_all'
+                        'index': True,
+                        'index_options': 'docs',
+                        'norms': True,
+                        # 'null_value'
+                        'store': False,
+                        'search_analyzer': self.elastic_index.search_analyzer,
+                        'similarity': 'classic',
+                        'term_vector': 'yes',
+                        'type': 'keyword'}}}})

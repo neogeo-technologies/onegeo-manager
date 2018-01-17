@@ -14,17 +14,31 @@
 # under the License.
 
 
-__version__ = '0.1a1.dev0'
+__all__ = ['ElasticIndex']
 
 
-from functools import reduce
-from onegeo_manager.elastic_index import *
-from onegeo_manager.index_profile import *
-from onegeo_manager.source import *
-from onegeo_manager.resource import *
-import operator
+class ElasticIndex(object):
 
+    def __init__(self, name):
 
-__all__ = reduce(operator.add, (
-    elastic_index.__all__, index_profile.__all__,
-    resource.__all__, source.__all__))
+        self._name = name
+        self._analyzer = None
+        self._search_analyzer = None
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def analyzer(self):
+        return self._analyzer
+
+    @property
+    def search_analyzer(self):
+        return self._search_analyzer
+
+    def set_analyzer(self, obj):
+        self._analyzer = obj
+
+    def set_search_analyzer(self, obj):
+        self._search_analyzer = obj
