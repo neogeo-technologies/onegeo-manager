@@ -38,8 +38,8 @@ class Source(AbstractSource):
 
     OUTPUSCHEMA = {
         'http://www.opengis.net/cat/csw/2.0.2': [
-            'nonGeographicDataset', 'series', 'service'],
-        'http://www.isotc211.org/2005/gmd': ['dataset']}
+            'nonGeographicDataset', 'service'],
+        'http://www.isotc211.org/2005/gmd': ['dataset', 'series']}
 
     def __init__(self, url, name, username=None, password=None):
         super().__init__(url, name)
@@ -55,7 +55,9 @@ class Source(AbstractSource):
         resources = []
         for val in names or auth_names:
             resource = Resource(self, val)
-            if val == 'dataset':
+
+            if val in self.OUTPUSCHEMA['http://www.isotc211.org/2005/gmd']:
+                # -> MD_Metadata
                 resource.add_columns((
                     {'name': 'abstract', 'column_type': 'text'},
                     {'name': 'bbox', 'column_type': 'geo_shape'},
@@ -67,6 +69,7 @@ class Source(AbstractSource):
                     {'name': 'identifier', 'column_type': 'text'},
                     {'name': 'keyword', 'column_type': 'object'},
                     {'name': 'lineage', 'column_type': 'text'},
+                    {'name': 'parent_identifier', 'column_type': 'text'},
                     {'name': 'rights', 'column_type': 'text'},
                     {'name': 'spatial_type', 'column_type': 'text'},
                     {'name': 'standard', 'column_type': 'object'},
@@ -78,7 +81,9 @@ class Source(AbstractSource):
                     {'name': 'use_constraints', 'column_type': 'text'},
                     {'name': 'use_limitation', 'column_type': 'text'},
                     {'name': 'xml', 'column_type': 'text'}))
-            else:
+
+            if val in self.OUTPUSCHEMA['http://www.opengis.net/cat/csw/2.0.2']:
+                # -> CswRecord
                 resource.add_columns((
                     {'name': 'abstract', 'column_type': 'text'},
                     # {'name': 'accessrights', 'column_type': 'text'},  # dct
@@ -104,6 +109,7 @@ class Source(AbstractSource):
                     {'name': 'type', 'column_type': 'text'},
                     {'name': 'uris', 'column_type': 'object'},
                     {'name': 'xml', 'column_type': 'text'}))
+
             resources.append(resource)
         return resources
 
@@ -131,6 +137,7 @@ class Source(AbstractSource):
             records = list(self._csw.records.values())
             for rec in records:
                 data = {}
+
                 if rec.__class__.__name__ == 'MD_Metadata':
                     data['abstract'] = rec.identification.abstract
                     data['bbox'] = rec.identification.bbox and {
@@ -161,6 +168,7 @@ class Source(AbstractSource):
                         [y for x in [item.keywords for item in rec.identification.keywords2
                          if item.__class__.__name__ == 'MD_Keywords'] for y in x]
                     data['lineage'] = rec.dataquality.lineage
+                    data['parent_identifier'] = rec.parentidentifier
                     data['rights'] = \
                         rec.identification.accessconstraints + \
                         rec.identification.securityconstraints + \
@@ -180,7 +188,7 @@ class Source(AbstractSource):
                          if item.__class__.__name__ == 'CI_OnlineResource']
                     data['xml'] = rec.xml
 
-                else:
+                if rec.__class__.__name__ == 'CswRecord':
                     for col in resource.iter_columns():
                         try:
                             attr = getattr(rec, col['name'])
