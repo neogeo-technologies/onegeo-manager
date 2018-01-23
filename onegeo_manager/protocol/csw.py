@@ -38,12 +38,13 @@ class Source(AbstractSource):
 
     OUTPUSCHEMA = {
         'http://www.opengis.net/cat/csw/2.0.2': [
-            'nonGeographicDataset', 'dataset', 'series', 'service'],
-        'http://www.isotc211.org/2005/gmd': []}
+            'nonGeographicDataset', 'series', 'service'],
+        'http://www.isotc211.org/2005/gmd': ['dataset']}
 
-    def __init__(self, url, name):
+    def __init__(self, url, name, username=None, password=None):
         super().__init__(url, name)
-        self._csw = csw.CatalogueServiceWeb(url)
+        self._csw = \
+            csw.CatalogueServiceWeb(url, username=username, password=password)
         self.capabilities = self._csw.response
 
     def get_resources(self, names=[]):
@@ -54,79 +55,156 @@ class Source(AbstractSource):
         resources = []
         for val in names or auth_names:
             resource = Resource(self, val)
-            resource.add_columns((
-                {'name': 'abstract', 'column_type': 'text'},
-                # {'name': 'accessrights', 'column_type': 'text'},  # dct
-                # {'name': 'alternative', 'column_type': 'text'},  # dct
-                # {'name': 'created', 'column_type': 'text'},  # dct
-                # {'name': 'bbox', 'column_type': 'geo_shape'},  # ows
-                # {'name': 'bbox_wgs84', 'column_type': 'geo_shape'}, # ows
-                {'name': 'date', 'column_type': 'date'},
-                {'name': 'identifier', 'column_type': 'text'},
-                # {'name': 'ispartof', 'column_type': 'text'},  # dct
-                # {'name': 'issued', 'column_type': 'text'},  # dct
-                # {'name': 'license', 'column_type': 'text'},  # dct
-                # {'name': 'modified', 'column_type': 'text'},  # dct
-                # {'name': 'references', 'column_type': 'object'},  # dct
-                {'name': 'relation', 'column_type': 'text'},
-                {'name': 'rights', 'column_type': 'text'},
-                # {'name': 'rightsholder', 'column_type': 'text'},  # dct
-                # {'name': 'spatial', 'column_type': 'text'},  # dct
-                {'name': 'source', 'column_type': 'text'},
-                {'name': 'subjects', 'column_type': 'text'},
-                # {'name': 'temporal', 'column_type': 'text'},  # dct
-                {'name': 'title', 'column_type': 'text'},
-                {'name': 'type', 'column_type': 'text'},
-                {'name': 'uris', 'column_type': 'object'},
-                {'name': 'xml', 'column_type': 'text'}))
+            if val == 'dataset':
+                resource.add_columns((
+                    {'name': 'abstract', 'column_type': 'text'},
+                    {'name': 'bbox', 'column_type': 'geo_shape'},
+                    {'name': 'classification', 'column_type': 'text'},
+                    {'name': 'contact', 'column_type': 'object'},
+                    {'name': 'date_publication', 'column_type': 'date'},
+                    {'name': 'denominators', 'column_type': 'integer'},
+                    {'name': 'distance', 'column_type': 'integer'},
+                    {'name': 'identifier', 'column_type': 'text'},
+                    {'name': 'keyword', 'column_type': 'object'},
+                    {'name': 'lineage', 'column_type': 'text'},
+                    {'name': 'rights', 'column_type': 'text'},
+                    {'name': 'spatial_type', 'column_type': 'text'},
+                    {'name': 'standard', 'column_type': 'object'},
+                    {'name': 'title', 'column_type': 'text'},
+                    {'name': 'topic_category', 'column_type': 'text'},
+                    {'name': 'type', 'column_type': 'text'},
+                    {'name': 'uom', 'column_type': 'text'},
+                    {'name': 'uris', 'column_type': 'object'},
+                    {'name': 'use_constraints', 'column_type': 'text'},
+                    {'name': 'use_limitation', 'column_type': 'text'},
+                    {'name': 'xml', 'column_type': 'text'}))
+            else:
+                resource.add_columns((
+                    {'name': 'abstract', 'column_type': 'text'},
+                    # {'name': 'accessrights', 'column_type': 'text'},  # dct
+                    # {'name': 'alternative', 'column_type': 'text'},  # dct
+                    # {'name': 'created', 'column_type': 'text'},  # dct
+                    # {'name': 'bbox', 'column_type': 'geo_shape'},  # ows
+                    # {'name': 'bbox_wgs84', 'column_type': 'geo_shape'}, # ows
+                    {'name': 'date', 'column_type': 'date'},
+                    {'name': 'identifier', 'column_type': 'text'},
+                    # {'name': 'ispartof', 'column_type': 'text'},  # dct
+                    # {'name': 'issued', 'column_type': 'text'},  # dct
+                    # {'name': 'license', 'column_type': 'text'},  # dct
+                    # {'name': 'modified', 'column_type': 'text'},  # dct
+                    # {'name': 'references', 'column_type': 'object'},  # dct
+                    {'name': 'relation', 'column_type': 'text'},
+                    {'name': 'rights', 'column_type': 'text'},
+                    # {'name': 'rightsholder', 'column_type': 'text'},  # dct
+                    # {'name': 'spatial', 'column_type': 'text'},  # dct
+                    {'name': 'source', 'column_type': 'text'},
+                    {'name': 'subjects', 'column_type': 'text'},
+                    # {'name': 'temporal', 'column_type': 'text'},  # dct
+                    {'name': 'title', 'column_type': 'text'},
+                    {'name': 'type', 'column_type': 'text'},
+                    {'name': 'uris', 'column_type': 'object'},
+                    {'name': 'xml', 'column_type': 'text'}))
             resources.append(resource)
         return resources
 
-    def get_collection(self, resource_name, step=10):
+    def get_collection(self, resource, step=10, id_record=[]):
 
         params = {
-            'cql': "type LIKE '{0}'".format(resource_name),
-            'typenames': 'csw:Record',
+            'cql': "type LIKE '{0}'".format(resource.name),
             'esn': 'full',
             'format': 'application/xml',
+            'maxrecords': step,
             'outputschema': tuple(
-                tuple(k for v in l if v == resource_name)[0]
-                for k, l in self.OUTPUSCHEMA.items() if resource_name in l)[0],
+                tuple(k for v in l if v == resource.name)[0]
+                for k, l in self.OUTPUSCHEMA.items()
+                if resource.name in l)[0],
             'resulttype': 'results',
             'startposition': 0,
-            'maxrecords': step}
+            'typenames': 'csw:Record'}
+
+        if len(id_record) > 0:
+            params['cql'] = "type LIKE '{0}' AND (identifier LIKE '{1}')".format(
+                resource.name, "' OR identifier LIKE '".join(id_record))
 
         while True:
             self._csw.getrecords2(**params)
             records = list(self._csw.records.values())
             for rec in records:
                 data = {}
-                resource = self.get_resources(names=[rec.type])[0]
-                for col in resource.iter_columns():
-                    try:
-                        attr = getattr(rec, col['name'])
-                    except AttributeError:
-                        data[col['name']] = None
-                        continue
+                if rec.__class__.__name__ == 'MD_Metadata':
+                    data['abstract'] = rec.identification.abstract
+                    data['bbox'] = rec.identification.bbox and {
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Polygon',
+                            'coordinates': [[
+                                [rec.identification.bbox.minx,
+                                 rec.identification.bbox.miny],
+                                [rec.identification.bbox.maxx,
+                                 rec.identification.bbox.miny],
+                                [rec.identification.bbox.maxx,
+                                 rec.identification.bbox.maxy],
+                                [rec.identification.bbox.minx,
+                                 rec.identification.bbox.maxy]]]}}
+                    data['classification'] = rec.identification.classification
+                    data['contact'] = rec.identification.contact and \
+                        [item.__dict__ for item in rec.identification.contact
+                         if item.__class__.__name__ == 'CI_ResponsibleParty']
+                    data['date_publication'] = rec.identification.date and \
+                        [item.date for item in rec.identification.date
+                         if item.__class__.__name__ == 'CI_Date'
+                         and item.type == 'publication']
+                    data['denominators'] = rec.identification.denominators
+                    data['distance'] = rec.identification.distance
+                    data['identifier'] = rec.identifier
+                    data['keyword'] = \
+                        [y for x in [item.keywords for item in rec.identification.keywords2
+                         if item.__class__.__name__ == 'MD_Keywords'] for y in x]
+                    data['lineage'] = rec.dataquality.lineage
+                    data['rights'] = \
+                        rec.identification.accessconstraints + \
+                        rec.identification.securityconstraints + \
+                        rec.identification.otherconstraints
+                    data['spatial_type'] = \
+                        rec.identification.spatialrepresentationtype
+                    data['standard'] = \
+                        {'name': rec.stdname, 'version': rec.stdver}
+                    data['title'] = rec.identification.title
+                    data['type'] = rec.hierarchy
+                    data['topic_category'] = rec.identification.topiccategory
+                    data['uom'] = rec.identification.uom
+                    data['use_constraints'] = rec.identification.useconstraints
+                    data['use_limitation'] = rec.identification.uselimitation
+                    data['uris'] = rec.distribution.online and \
+                        [item.__dict__ for item in rec.distribution.online
+                         if item.__class__.__name__ == 'CI_OnlineResource']
+                    data['xml'] = rec.xml
 
-                    if col['name'] == 'bbox_wgs84' \
-                            and col['type'] == 'geo_shape' and attr:
-                        attr = {
-                            'type': 'Feature',
-                            'crs': {
-                                'type': 'name',
-                                'properties': {'name': str(attr.crs)}},
-                            'geometry': {
-                                'type': 'Polygon',
-                                'coordinates': [[
-                                    [attr.minx, attr.miny],
-                                    [attr.maxx, attr.miny],
-                                    [attr.maxx, attr.maxy],
-                                    [attr.minx, attr.maxy]]]}}
+                else:
+                    for col in resource.iter_columns():
+                        try:
+                            attr = getattr(rec, col['name'])
+                        except AttributeError:
+                            data[col['name']] = None
+                            continue
+                        if col['name'] == 'bbox_wgs84' \
+                                and col['type'] == 'geo_shape' and attr:
+                            attr = {
+                                'type': 'Feature',
+                                'crs': {
+                                    'type': 'name',
+                                    'properties': {'name': str(attr.crs)}},
+                                'geometry': {
+                                    'type': 'Polygon',
+                                    'coordinates': [[
+                                        [attr.minx, attr.miny],
+                                        [attr.maxx, attr.miny],
+                                        [attr.maxx, attr.maxy],
+                                        [attr.minx, attr.maxy]]]}}
 
-                    data[col['name']] = \
-                        isinstance(attr, bytes) and attr.decode() or attr
-                yield data
+                        data[col['name']] = \
+                            isinstance(attr, bytes) and attr.decode() or attr
+                yield clean_my_obj(data)
 
             if len(records) < step:
                 break
@@ -157,7 +235,7 @@ class IndexProfile(AbstractIndexProfile):
 
             for record in fun(self, *args, **kwargs):
                 xml = 'xml' in record and record.pop('xml') or None
-                uri = 'uri' in record and record.pop('uris') or None
+                uris = 'uris' in record and record.pop('uris') or None
                 yield {
                     'lineage': {
                         'resource': {
@@ -167,14 +245,14 @@ class IndexProfile(AbstractIndexProfile):
                             'protocol': self.resource.source.protocol,
                             'uri': self.resource.source.protocol}},
                     'properties': set_aliases(record),
-                    'uri': uri,
+                    'uri': uris,
                     'xml': xml}
 
         return wrapper
 
     @_format
     def get_collection(self, **opts):
-        return self.resource.source.get_collection(self.resource.name, **opts)
+        return self.resource.source.get_collection(self.resource, **opts)
 
     def generate_elastic_mapping(self):
 
@@ -196,27 +274,25 @@ class IndexProfile(AbstractIndexProfile):
                                     'name': not_searchable('keyword'),
                                     'type': not_searchable('keyword'),
                                     'uri': not_searchable('keyword')}}}},
-                    'properties': {
-                        'properties': props},
-                    'tags': {
-                        'analyzer': self.elastic_index.analyzer,
-                        'boost': 1.0,
-                        # 'doc_value'
-                        # 'eager_global_ordinals'
-                        # 'fields'
-                        # 'ignore_above'
-                        # 'include_in_all'
-                        'index': True,
-                        'index_options': 'docs',
-                        'norms': True,
-                        # 'null_value'
-                        'store': False,
-                        'search_analyzer': self.elastic_index.search_analyzer,
-                        'similarity': 'classic',
-                        'term_vector': 'yes',
-                        'type': 'keyword'},
+                    'properties': {'properties': props},
+                    # 'tags': {
+                    #     'analyzer': self.elastic_index.analyzer,
+                    #     # 'boost': 1.0,
+                    #     # 'doc_value'
+                    #     # 'eager_global_ordinals'
+                    #     # 'fields'
+                    #     # 'ignore_above'
+                    #     # 'include_in_all'
+                    #     'index': True,
+                    #     'index_options': 'docs',
+                    #     'norms': True,
+                    #     # 'null_value'
+                    #     'store': False,
+                    #     'search_analyzer': self.elastic_index.search_analyzer,
+                    #     'similarity': 'classic',
+                    #     'term_vector': 'yes',
+                    #     'type': 'keyword'},
                     'uri': {
-                        'type': 'nested',
                         'properties': {
                             'protocol': not_searchable('keyword'),
                             'name': not_searchable('text'),

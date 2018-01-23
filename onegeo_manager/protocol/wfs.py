@@ -43,8 +43,7 @@ class Method(metaclass=StaticClass):
         return val in self.VERSION
 
     @staticmethod
-    def get(self, request_name, url, **params):
-
+    def get(self, request_name, url, params=None, auth=None):
         params.update({'service': self.SERVICE})
 
         if self.authorized_requests(self, request_name):
@@ -58,19 +57,20 @@ class Method(metaclass=StaticClass):
             raise UnexpectedError(
                 'Version value \'{0}\' not authorized.'.format(params['version']))
 
-        return execute_http_get(url, **params)
+        return execute_http_get(url, params=params, auth=auth)
 
     @classmethod
-    def get_capabilities(cls, url, **params):
-        return cls.get(cls, 'GetCapabilities', url, **params)
+    def get_capabilities(cls, url, params, auth=None):
+        return cls.get(cls, 'GetCapabilities', url, params=params, auth=auth)
 
     @classmethod
-    def describe_feature_type(cls, url, **params):
-        return cls.get(cls, 'DescribeFeatureType', url, **params)
+    def describe_feature_type(cls, url, params, auth=None):
+        return \
+            cls.get(cls, 'DescribeFeatureType', url, params=params, auth=auth)
 
     @classmethod
-    def get_feature(cls, url, **params):
-        return cls.get(cls, 'GetFeature', url, **params)
+    def get_feature(cls, url, params, auth=None):
+        return cls.get(cls, 'GetFeature', url, params=params, auth=auth)
 
 
 class Resource(AbstractResource):
@@ -126,8 +126,11 @@ class Resource(AbstractResource):
 
 class Source(AbstractSource):
 
-    def __init__(self, url, name):
+    def __init__(self, url, name, username=None, password=None):
         super().__init__(url, name)
+
+        self.username = username
+        self.password = password
 
         self.capabilities = self.__get_capabilities()['WFS_Capabilities']
 
@@ -230,15 +233,21 @@ class Source(AbstractSource):
 
     @ResponseConverter()
     def __get_capabilities(self, **params):
-        return Method.get_capabilities(self.uri, **params)
+        auth = self.username and self.password \
+            and (self.username, self.password) or None
+        return Method.get_capabilities(self.uri, params, auth=auth)
 
     @ResponseConverter()
     def __describe_feature_type(self, **params):
-        return Method.describe_feature_type(self.uri, **params)
+        auth = self.username and self.password \
+            and (self.username, self.password) or None
+        return Method.describe_feature_type(self.uri, params, auth=auth)
 
     @ResponseConverter()
     def __get_feature(self, **params):
-        return Method.get_feature(self.uri, **params)
+        auth = self.username and self.password \
+            and (self.username, self.password) or None
+        return Method.get_feature(self.uri, params, auth=auth)
 
 
 class IndexProfile(AbstractIndexProfile):
@@ -265,17 +274,18 @@ class IndexProfile(AbstractIndexProfile):
                     'geometry': record.get('geometry'),
                     'lineage': {
                         'resource': {
+                            # 'abstract': self.resource.abstract,
+                            # 'metadata_url': self.resource.metadata_url,
                             'name': self.resource.name,
-                            'title': self.resource.title,
-                            'abstract': self.resource.abstract,
-                            'metadata_url': self.resource.metadata_url},
+                            # 'title': self.resource.title
+                            },
                         'source': {
+                            # 'abstract': self.resource.source.abstract,
+                            # 'metadata_url': self.resource.source.metadata_url,
                             'name': self.resource.source.name,
-                            'title': self.resource.source.title,
-                            'abstract': self.resource.source.abstract,
-                            'metadata_url': self.resource.source.metadata_url,
-                            'uri': self.resource.source.uri,
-                            'protocol': self.resource.source.protocol}},
+                            'protocol': self.resource.source.protocol,
+                            # 'title': self.resource.source.title,
+                            'uri': self.resource.source.uri}},
                     'properties': alias(record['properties'])}
 
         return wrapper
@@ -311,34 +321,35 @@ class IndexProfile(AbstractIndexProfile):
                         'properties': {
                             'resource': {
                                 'properties': {
-                                    'abstract': not_searchable('keyword'),
-                                    'metadata_url': not_searchable('keyword'),
+                                    # 'abstract': not_searchable('keyword'),
+                                    # 'metadata_url': not_searchable('keyword'),
                                     'name': not_searchable('keyword'),
-                                    'title': not_searchable('keyword')}},
+                                    # 'title': not_searchable('keyword')
+                                    }},
                             'source': {
                                 'properties': {
-                                    'abstract': not_searchable('keyword'),
-                                    'metadata_url': not_searchable('keyword'),
+                                    # 'abstract': not_searchable('keyword'),
+                                    # 'metadata_url': not_searchable('keyword'),
                                     'name': not_searchable('keyword'),
-                                    'title': not_searchable('keyword'),
-                                    'type': not_searchable('keyword'),
+                                    'protocol': not_searchable('keyword'),
+                                    # 'title': not_searchable('keyword'),
                                     'uri': not_searchable('keyword')}}}},
-                    'properties': {
-                        'properties': props},
-                    'tags': {
-                        'analyzer': self.elastic_index.analyzer,
-                        'boost': 1.0,
-                        # 'doc_value'
-                        # 'eager_global_ordinals'
-                        # 'fields'
-                        # 'ignore_above'
-                        # 'include_in_all'
-                        'index': True,
-                        'index_options': 'docs',
-                        'norms': True,
-                        # 'null_value'
-                        'store': False,
-                        'search_analyzer': self.elastic_index.search_analyzer,
-                        'similarity': 'classic',
-                        'term_vector': 'yes',
-                        'type': 'keyword'}}}})
+                    'properties': {'properties': props},
+                    # 'tags': {
+                    #     'analyzer': self.elastic_index.analyzer,
+                    #     # 'boost': 1.0,
+                    #     # 'doc_value'
+                    #     # 'eager_global_ordinals'
+                    #     # 'fields'
+                    #     # 'ignore_above'
+                    #     # 'include_in_all'
+                    #     'index': True,
+                    #     'index_options': 'docs',
+                    #     'norms': True,
+                    #     # 'null_value'
+                    #     'store': False,
+                    #     'search_analyzer': self.elastic_index.search_analyzer,
+                    #     'similarity': 'classic',
+                    #     'term_vector': 'yes',
+                    #     'type': 'keyword'}
+                    }}})

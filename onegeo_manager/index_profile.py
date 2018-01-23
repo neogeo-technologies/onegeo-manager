@@ -47,24 +47,24 @@ def fetch_mapping(p):
                     # 'doc_value'
                     # 'eager_global_ordinals'
                     # 'fields'
-                    # 'ignore_above'
-                    'index': False,
-                    'index_options': 'freqs',
-                    'norms': True,
+                    'ignore_above': 256,
+                    # 'index': False,
+                    # 'index_options': 'freqs',
+                    # 'norms': True,
                     # 'null_value'
-                    'store': False,
-                    'similarity': 'classic',
+                    # 'store': False,
+                    # 'similarity': 'classic',
                     'type': 'keyword'}},
-            'include_in_all': False,
-            'index': True,
-            'index_options': 'offsets',
-            'norms': True,
-            'position_increment_gap': 100,
-            'store': False,
-            'search_analyzer': p.search_analyzer,
+            # 'include_in_all': False,
+            # 'index': True,
+            # 'index_options': 'offsets',
+            # 'norms': True,
+            # 'position_increment_gap': 100,
+            # 'store': False,
+            # 'search_analyzer': p.search_analyzer,
             # 'search_quote_analyzer'
-            'similarity': 'classic',
-            'term_vector': 'yes',
+            # 'similarity': 'classic',
+            # 'term_vector': 'yes',
             'type': 'text'}
 
     if p.column_type == 'keyword':
@@ -73,14 +73,14 @@ def fetch_mapping(p):
             # 'doc_value'
             # 'eager_global_ordinals'
             # 'fields'
-            # 'ignore_above'
-            'include_in_all': False,
-            'index': True,
-            'index_options': 'docs',
-            'norms': True,
+            'ignore_above': 256,
+            # 'include_in_all': False,
+            # 'index': True,
+            # 'index_options': 'docs',
+            # 'norms': True,
             # 'null_value'
-            'store': False,
-            'similarity': 'classic',
+            # 'store': False,
+            # 'similarity': 'classic',
             'type': 'keyword'}
 
     if p.column_type in ('byte', 'double', 'double_range',
@@ -88,14 +88,14 @@ def fetch_mapping(p):
                          'integer', 'integer_range', 'long',
                          'long_range', 'scaled_float', 'short'):
         return {
-            'coerce': True,
-            'boost': p.weight,
-            'doc_values': True,
-            'ignore_malformed': True,
-            'include_in_all': False,
-            'index': True,
+            # 'coerce': True,
+            # 'boost': p.weight,
+            # 'doc_values': True,
+            # 'ignore_malformed': True,
+            # 'include_in_all': False,
+            # 'index': True,
             # 'null_value'
-            'store': False,
+            # 'store': False,
             'type': p.column_type}
 
         # if p.type == 'scaled_float':
@@ -103,30 +103,30 @@ def fetch_mapping(p):
 
     if p.column_type in ('date', 'date_range'):
         return {
-            'boost': p.weight,
-            'doc_values': True,
-            'format': p.pattern,
+            # 'boost': p.weight,
+            # 'doc_values': True,
+            # 'format': p.pattern,
             # 'locale'
-            'ignore_malformed': True,
-            'include_in_all': False,
-            'index': True,
+            # 'ignore_malformed': True,
+            # 'include_in_all': False,
+            # 'index': True,
             # 'null_value'
-            'store': False,
+            # 'store': False,
             'type': p.column_type}
 
     if p.column_type == 'boolean':
         return {
-            'boost': p.weight,
-            'doc_values': True,
-            'index': True,
+            # 'boost': p.weight,
+            # 'doc_values': True,
+            # 'index': True,
             # 'null_value'
-            'store': False,
+            # 'store': False,
             'type': p.column_type}
 
     if p.column_type == 'binary':
         return {
-            'doc_values': True,
-            'store': False,
+            # 'doc_values': True,
+            # 'store': False,
             'type': p.column_type}
 
 
@@ -355,7 +355,7 @@ class AbstractIndexProfile(metaclass=ABCMeta):
 
     @tags.setter
     def tags(self, lst):
-        if type(lst) is not list:
+        if not isinstance(lst, list):
             raise TypeError('Input should be a list.')
         self._tags = lst
 

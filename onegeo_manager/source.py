@@ -51,11 +51,11 @@ class AbstractSource(metaclass=ABCMeta):
 
 class Source(object):
 
-    def __new__(self, uri, name, protocol):
+    def __new__(self, uri, name, protocol, **kwargs):
 
         ext = import_module(
             'onegeo_manager.protocol.{0}'.format(protocol), __name__)
 
         self = object.__new__(ext.Source)
-        self.__init__(uri, name)
+        self.__init__(uri, name, **kwargs)
         return self

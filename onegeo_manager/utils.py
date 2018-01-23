@@ -49,12 +49,12 @@ class ResponseConverter(object):
         return wrapper
 
 
-def execute_http_get(url, **params):
+def execute_http_get(url, params=None, auth=None):
 
     e = None
     for i in range(0, 100):
         try:
-            r = requests.get(url, params=params)
+            r = requests.get(url, params=params, auth=auth)
         except Exception as err:
             e = err
             continue
@@ -66,7 +66,7 @@ def execute_http_get(url, **params):
     if r.status_code == 200:
         r.raise_for_status()
 
-    pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)+$'
+    pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)*$'
     s = re.search(pattern, r.headers['Content-Type'])
     if s and s.group(2) == 'json':
         return r.json()
