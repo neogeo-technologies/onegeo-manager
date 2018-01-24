@@ -18,8 +18,8 @@ from abc import ABCMeta
 from abc import abstractmethod
 from importlib import import_module
 import inspect
+from onegeo_manager.exception import ProtocolNotFoundError
 import os.path
-from re import search
 
 
 __all__ = ['Source']
@@ -27,16 +27,11 @@ __all__ = ['Source']
 
 class AbstractSource(metaclass=ABCMeta):
 
-    def __init__(self, uri, name):
+    def __init__(self, uri):
 
         self.protocol = os.path.basename(
             inspect.getmodule(inspect.stack()[1][0]).__file__[:-3])
         self.uri = uri
-
-        s = search('^[a-z0-9_]{2,100}$', name)
-        if not s:
-            raise ValueError("Malformed value for 'name'.")
-        self.name = name
 
     @abstractmethod
     def get_resources(self, *args, **kwargs):
@@ -51,11 +46,14 @@ class AbstractSource(metaclass=ABCMeta):
 
 class Source(object):
 
-    def __new__(self, uri, name, protocol, **kwargs):
+    def __new__(self, uri, protocol, **kwargs):
 
-        ext = import_module(
-            'onegeo_manager.protocol.{0}'.format(protocol), __name__)
+        try:
+            ext = import_module(
+                'onegeo_manager.protocol.{0}'.format(protocol), __name__)
+        except ModuleNotFoundError:
+            raise ProtocolNotFoundError
 
         self = object.__new__(ext.Source)
-        self.__init__(uri, name, **kwargs)
+        self.__init__(uri, **kwargs)
         return self

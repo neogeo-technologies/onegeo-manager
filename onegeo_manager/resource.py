@@ -16,6 +16,7 @@
 
 from abc import ABCMeta
 from importlib import import_module
+from onegeo_manager.exception import ProtocolNotFoundError
 
 
 __all__ = ['Resource']
@@ -97,8 +98,12 @@ class Resource(object):
 
     def __new__(self, source, name):
 
-        ext = import_module(
-            'onegeo_manager.protocol.{0}'.format(source.protocol), __name__)
+        protocol = source.protocol
+        try:
+            ext = import_module(
+                'onegeo_manager.protocol.{0}'.format(protocol), __name__)
+        except ModuleNotFoundError:
+            raise ProtocolNotFoundError
 
         self = object.__new__(ext.Resource)
         self.__init__(source, name)

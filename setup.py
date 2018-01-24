@@ -42,7 +42,6 @@ setup(
     install_requires=[
         'neogeo_xml_utils==0.0.1',
         'OWSLib>=0.16.0',
-        'PyPDF2>=1.26.0',
         'requests>=2.13.0'],
     dependency_links=[
         'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git@0.0.1#egg=neogeo_xml_utils-0.0.1'])

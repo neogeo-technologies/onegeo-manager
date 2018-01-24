@@ -15,23 +15,29 @@
 
 
 class GenericException(Exception):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
 
     def __str__(self):
-        return str(self.args)
+        return str(self.args or self.__class__.__name__)
 
 
 class OGCExceptionReport(GenericException):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class OGCDocumentError(GenericException):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class UnexpectedError(GenericException):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ProtocolNotFoundError(GenericException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

@@ -15,6 +15,8 @@
 
 
 from functools import wraps
+from neogeo_xml_utils import XMLToObj
+from onegeo_manager.exception import OGCExceptionReport
 from onegeo_manager.exception import UnexpectedError
 from onegeo_manager.index_profile import AbstractIndexProfile
 from onegeo_manager.index_profile import fetch_mapping
@@ -23,11 +25,33 @@ from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import browse
 from onegeo_manager.utils import clean_my_obj
-from onegeo_manager.utils import execute_http_get
-from onegeo_manager.utils import ResponseConverter
 from onegeo_manager.utils import StaticClass
 import operator
-from re import search
+import re
+import requests
+
+
+def response_converter(fun):
+
+    @wraps(fun)
+    def wrapper(*args, **kwargs):
+        response = fun(*args, **kwargs)
+        if not isinstance(response, str):
+            return response
+        data = XMLToObj(response, with_ns=False).data
+
+        if 'ExceptionReport' in data:
+            report = data['ExceptionReport']
+            if report['@version'] == '2.0.0':
+                code = report['Exception']['@exceptionCode']
+            else:
+                code = report['Exception']['@exceptionCode']
+
+            raise OGCExceptionReport(
+                code, report['Exception']['ExceptionText'])
+
+        return data
+    return wrapper
 
 
 class Method(metaclass=StaticClass):
@@ -57,7 +81,28 @@ class Method(metaclass=StaticClass):
             raise UnexpectedError(
                 'Version value \'{0}\' not authorized.'.format(params['version']))
 
-        return execute_http_get(url, params=params, auth=auth)
+        for i in range(0, 10):
+            try:
+                r = requests.get(url, params=params, auth=auth)
+            except Exception as e:
+                error = e
+                continue
+            else:
+                break
+        else:
+            raise error
+
+        if r.status_code == 200:
+            r.raise_for_status()
+
+        pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)*$'
+        s = re.search(pattern, r.headers['Content-Type'])
+        if s and s.group(2) == 'json':
+            return r.json()
+        elif s and s.group(2) == 'xml':
+            return r.text
+        else:
+            raise Exception('Error service response.', r.text)
 
     @classmethod
     def get_capabilities(cls, url, params, auth=None):
@@ -126,8 +171,8 @@ class Resource(AbstractResource):
 
 class Source(AbstractSource):
 
-    def __init__(self, url, name, username=None, password=None):
-        super().__init__(url, name)
+    def __init__(self, url, username=None, password=None):
+        super().__init__(url)
 
         self.username = username
         self.password = password
@@ -216,7 +261,7 @@ class Source(AbstractSource):
                 'string': format_str}}
 
         for k, v in testing.items():
-            s = search(v['pattern'], v['string'])
+            s = re.search(v['pattern'], v['string'])
             if not s:
                 raise UnexpectedError('GeoJSON Outputformat Not Found')
             params[k] = s.group(0)
@@ -231,19 +276,19 @@ class Source(AbstractSource):
                 break
             params['startindex'] += step
 
-    @ResponseConverter()
+    @response_converter
     def __get_capabilities(self, **params):
         auth = self.username and self.password \
             and (self.username, self.password) or None
         return Method.get_capabilities(self.uri, params, auth=auth)
 
-    @ResponseConverter()
+    @response_converter
     def __describe_feature_type(self, **params):
         auth = self.username and self.password \
             and (self.username, self.password) or None
         return Method.describe_feature_type(self.uri, params, auth=auth)
 
-    @ResponseConverter()
+    @response_converter
     def __get_feature(self, **params):
         auth = self.username and self.password \
             and (self.username, self.password) or None
@@ -252,8 +297,8 @@ class Source(AbstractSource):
 
 class IndexProfile(AbstractIndexProfile):
 
-    def __init__(self, name, elastic_index, resource):
-        super().__init__(name, elastic_index, resource)
+    def __init__(self, name, resource):
+        super().__init__(name, resource)
 
     def _format(fun):
 
@@ -274,17 +319,9 @@ class IndexProfile(AbstractIndexProfile):
                     'geometry': record.get('geometry'),
                     'lineage': {
                         'resource': {
-                            # 'abstract': self.resource.abstract,
-                            # 'metadata_url': self.resource.metadata_url,
-                            'name': self.resource.name,
-                            # 'title': self.resource.title
-                            },
+                            'name': self.resource.name},
                         'source': {
-                            # 'abstract': self.resource.source.abstract,
-                            # 'metadata_url': self.resource.source.metadata_url,
-                            'name': self.resource.source.name,
                             'protocol': self.resource.source.protocol,
-                            # 'title': self.resource.source.title,
                             'uri': self.resource.source.uri}},
                     'properties': alias(record['properties'])}
 
@@ -321,35 +358,9 @@ class IndexProfile(AbstractIndexProfile):
                         'properties': {
                             'resource': {
                                 'properties': {
-                                    # 'abstract': not_searchable('keyword'),
-                                    # 'metadata_url': not_searchable('keyword'),
-                                    'name': not_searchable('keyword'),
-                                    # 'title': not_searchable('keyword')
-                                    }},
+                                    'name': not_searchable('keyword')}},
                             'source': {
                                 'properties': {
-                                    # 'abstract': not_searchable('keyword'),
-                                    # 'metadata_url': not_searchable('keyword'),
-                                    'name': not_searchable('keyword'),
                                     'protocol': not_searchable('keyword'),
-                                    # 'title': not_searchable('keyword'),
                                     'uri': not_searchable('keyword')}}}},
-                    'properties': {'properties': props},
-                    # 'tags': {
-                    #     'analyzer': self.elastic_index.analyzer,
-                    #     # 'boost': 1.0,
-                    #     # 'doc_value'
-                    #     # 'eager_global_ordinals'
-                    #     # 'fields'
-                    #     # 'ignore_above'
-                    #     # 'include_in_all'
-                    #     'index': True,
-                    #     'index_options': 'docs',
-                    #     'norms': True,
-                    #     # 'null_value'
-                    #     'store': False,
-                    #     'search_analyzer': self.elastic_index.search_analyzer,
-                    #     'similarity': 'classic',
-                    #     'term_vector': 'yes',
-                    #     'type': 'keyword'}
-                    }}})
+                    'properties': {'properties': props}}}})

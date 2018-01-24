@@ -14,69 +14,9 @@
 # under the License.
 
 
-from functools import wraps
-from neogeo_xml_utils import XMLToObj
-from onegeo_manager.exception import OGCExceptionReport
 import operator
 import re
-import requests
 
-
-class ResponseConverter(object):
-
-    def __call__(self, f):
-
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            response = f(*args, **kwargs)
-            if not isinstance(response, str):
-                return response
-
-            data = XMLToObj(response, with_ns=False).data
-
-            if 'ExceptionReport' in data:
-                report = data['ExceptionReport']
-                if report['@version'] == '2.0.0':
-                    code = report['Exception']['@exceptionCode']
-                else:
-                    code = report['Exception']['@exceptionCode']
-
-                raise OGCExceptionReport(
-                    code, report['Exception']['ExceptionText'])
-
-            return data
-
-        return wrapper
-
-
-def execute_http_get(url, params=None, auth=None):
-
-    e = None
-    for i in range(0, 100):
-        try:
-            r = requests.get(url, params=params, auth=auth)
-        except Exception as err:
-            e = err
-            continue
-        else:
-            break
-    else:
-        raise e
-
-    if r.status_code == 200:
-        r.raise_for_status()
-
-    pattern = '^(text|application)\/((\w+)\+?)+\;?((\s?\w+\=[\w\d\D]+);?)*$'
-    s = re.search(pattern, r.headers['Content-Type'])
-    if s and s.group(2) == 'json':
-        return r.json()
-    elif s and s.group(2) == 'xml':
-        return r.text
-    else:
-        raise Exception('Error service response.', r.text)
-
-
-# Cool stuffs
 
 def clean_my_dict(d):
     if not isinstance(d, dict):
@@ -86,8 +26,13 @@ def clean_my_dict(d):
 
 def clean_my_obj(obj):
     if isinstance(obj, (list, tuple, set)):
-        return type(obj)(clean_my_obj(x) for x in obj if x is not None)
-    elif isinstance(obj, dict):
+        if len(obj) > 1:
+            return type(obj)(clean_my_obj(x) for x in obj if x is not None)
+        if len(obj) == 1:
+            obj = obj[0]
+        if len(obj) < 1:
+            obj = None
+    if isinstance(obj, dict):
         return type(obj)(
             (clean_my_obj(k), clean_my_obj(v))
             for k, v in obj.items() if k is not None and v is not None)

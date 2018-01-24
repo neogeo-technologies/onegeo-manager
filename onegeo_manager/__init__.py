@@ -18,13 +18,11 @@ __version__ = '0.1a1.dev0'
 
 
 from functools import reduce
-from onegeo_manager.elastic_index import *
 from onegeo_manager.index_profile import *
 from onegeo_manager.source import *
 from onegeo_manager.resource import *
 import operator
 
 
-__all__ = reduce(operator.add, (
-    elastic_index.__all__, index_profile.__all__,
-    resource.__all__, source.__all__))
+__all__ = reduce(
+    operator.add, (index_profile.__all__, resource.__all__, source.__all__))

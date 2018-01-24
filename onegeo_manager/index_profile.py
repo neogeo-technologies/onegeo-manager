@@ -17,6 +17,7 @@
 from abc import ABCMeta
 from abc import abstractmethod
 from importlib import import_module
+from onegeo_manager.exception import ProtocolNotFoundError
 
 
 __all__ = ['IndexProfile', 'PropertyColumn']
@@ -272,18 +273,13 @@ class PropertyColumn(object):
 
 class AbstractIndexProfile(metaclass=ABCMeta):
 
-    def __init__(self, name, elastic_index, resource):
+    def __init__(self, name, resource):
 
         self._name = name
 
         if not resource.__class__.__qualname__ == 'Resource':
             raise TypeError("Argument should be an instance of 'Resource'.")
         self._resource = resource
-
-        if not elastic_index.__class__.__qualname__ == 'ElasticIndex':
-            raise \
-                TypeError("Argument should be an instance of 'ElasticIndex'.")
-        self._elastic_index = elastic_index
 
         self._properties = []
         for c in self.resource.iter_columns():
@@ -301,10 +297,6 @@ class AbstractIndexProfile(metaclass=ABCMeta):
     @property
     def resource(self):
         return self._resource
-
-    @property
-    def elastic_index(self):
-        return self._elastic_index
 
     def get_properties(self):
         return [prop.all() for prop in self.iter_properties()]
@@ -375,11 +367,15 @@ class AbstractIndexProfile(metaclass=ABCMeta):
 
 class IndexProfile(object):
 
-    def __new__(self, name, elastic_index, resource):
+    def __new__(self, name, resource):
 
-        ext = import_module(
-            'onegeo_manager.protocol.{0}'.format(resource.source.protocol), __name__)
+        protocol = resource.source.protocol
+        try:
+            ext = import_module(
+                'onegeo_manager.protocol.{0}'.format(protocol), __name__)
+        except ModuleNotFoundError:
+            raise ProtocolNotFoundError
 
         self = object.__new__(ext.IndexProfile)
-        self.__init__(name, elastic_index, resource)
+        self.__init__(name, resource)
         return self
