@@ -219,7 +219,7 @@ class Source(AbstractSource):
                         data[col['name']] = \
                             isinstance(attr, bytes) and attr.decode() or attr
 
-                yield clean_my_obj(data)
+                yield clean_my_obj(data, fading=True)
 
             if len(records) < step:
                 break

@@ -24,17 +24,21 @@ def clean_my_dict(d):
     return dict((k, clean_my_dict(v)) for k, v in d.items() if v is not None)
 
 
-def clean_my_obj(obj):
+def clean_my_obj(obj, fading=False):
     if isinstance(obj, (list, tuple, set)):
+        if not fading:
+            return type(obj)(
+                clean_my_obj(x, fading=fading) for x in obj if x is not None)
         if len(obj) > 1:
-            return type(obj)(clean_my_obj(x) for x in obj if x is not None)
+            return type(obj)(
+                clean_my_obj(x, fading=fading) for x in obj if x is not None)
         if len(obj) == 1:
             obj = obj[0]
         if len(obj) < 1:
             obj = None
     if isinstance(obj, dict):
         return type(obj)(
-            (clean_my_obj(k), clean_my_obj(v))
+            (clean_my_obj(k, fading=fading), clean_my_obj(v, fading=fading))
             for k, v in obj.items() if k is not None and v is not None)
     else:
         return obj
