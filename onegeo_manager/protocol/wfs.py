@@ -31,6 +31,9 @@ import re
 import requests
 
 
+__description__ = 'OGC:WFS'
+
+
 def response_converter(fun):
 
     @wraps(fun)

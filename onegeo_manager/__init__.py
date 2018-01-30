@@ -17,12 +17,12 @@
 __version__ = '0.1a1.dev0'
 
 
-from functools import reduce
+import itertools
 from onegeo_manager.index_profile import *
-from onegeo_manager.source import *
+from onegeo_manager import protocol
 from onegeo_manager.resource import *
-import operator
+from onegeo_manager.source import *
 
 
-__all__ = reduce(
-    operator.add, (index_profile.__all__, resource.__all__, source.__all__))
+__all__ = list(itertools.chain(
+    index_profile.__all__, protocol.__all__, resource.__all__, source.__all__))

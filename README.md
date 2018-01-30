@@ -34,10 +34,10 @@ Generate ElasticSearch mapping with default configuration
 {'my_index_profile': {'properties': { ...
 ```
 
-Get data collection in a generator
+Get data collection in a *generator*
 
 ```
->>> idx_profile.idx_profile.get_collection()
+>>> idx_profile.get_collection()
 <generator object IndexProfile.get_collection>
 ```
 

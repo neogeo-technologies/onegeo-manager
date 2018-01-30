@@ -14,4 +14,18 @@
 # under the License.
 
 
-__all__ = []
+from importlib import import_module
+import os
+
+
+def all():
+    p = 'onegeo_manager.protocol'
+    return tuple(
+        (lambda f: (
+            f, import_module('{}.{}'.format(p, f), __name__).__description__)
+         )(filename[:-3])
+        for filename in os.listdir(os.path.dirname(os.path.realpath(__file__)))
+        if filename.endswith('.py') and not filename.startswith('__'))
+
+
+__all__ = ['all']

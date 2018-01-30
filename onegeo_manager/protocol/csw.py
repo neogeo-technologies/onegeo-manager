@@ -26,6 +26,9 @@ import operator
 from owslib import csw
 
 
+__description__ = 'OGC:CSW'
+
+
 class Resource(AbstractResource):
 
     def __init__(self, source, name):
