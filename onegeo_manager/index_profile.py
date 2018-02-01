@@ -131,7 +131,7 @@ def fetch_mapping(p):
             'type': p.column_type}
 
     if p.column_type == 'geo_shape':
-        return {'type': 'p.column_type',
+        return {'type': p.column_type,
                 'tree': 'quadtree',
                 # 'precision': '',
                 # 'tree_levels': '',
