@@ -156,18 +156,18 @@ class Source(AbstractSource):
                     data = {
                         'abstract': rec.identification.abstract,
                         'bbox': rec.identification.bbox and {
-                            'type': 'Feature',
-                            'geometry': {
-                                'type': 'Polygon',
-                                'coordinates': [[
-                                    [rec.identification.bbox.minx,
-                                     rec.identification.bbox.miny],
-                                    [rec.identification.bbox.maxx,
-                                     rec.identification.bbox.miny],
-                                    [rec.identification.bbox.maxx,
-                                     rec.identification.bbox.maxy],
-                                    [rec.identification.bbox.minx,
-                                     rec.identification.bbox.maxy]]]}},
+                            'type': 'Polygon',
+                            'coordinates': [[
+                                [rec.identification.bbox.minx,
+                                 rec.identification.bbox.miny],
+                                [rec.identification.bbox.maxx,
+                                 rec.identification.bbox.miny],
+                                [rec.identification.bbox.maxx,
+                                 rec.identification.bbox.maxy],
+                                [rec.identification.bbox.minx,
+                                 rec.identification.bbox.maxy],
+                                [rec.identification.bbox.minx,
+                                 rec.identification.bbox.miny]]]},
                         'classification': rec.identification.classification,
                         'contact': rec.identification.contact and [
                             m.__dict__ for m in rec.identification.contact
@@ -215,17 +215,13 @@ class Source(AbstractSource):
                         if col['name'] == 'bbox_wgs84' \
                                 and col['type'] == 'geo_shape' and attr:
                             attr = {
-                                'type': 'Feature',
-                                'crs': {
-                                    'type': 'name',
-                                    'properties': {'name': str(attr.crs)}},
-                                'geometry': {
-                                    'type': 'Polygon',
-                                    'coordinates': [[
-                                        [attr.minx, attr.miny],
-                                        [attr.maxx, attr.miny],
-                                        [attr.maxx, attr.maxy],
-                                        [attr.minx, attr.maxy]]]}}
+                                'type': 'Polygon',
+                                'coordinates': [[
+                                    [attr.minx, attr.miny],
+                                    [attr.maxx, attr.miny],
+                                    [attr.maxx, attr.maxy],
+                                    [attr.minx, attr.maxy],
+                                    [attr.minx, attr.miny]]]}
 
                         data[col['name']] = \
                             isinstance(attr, bytes) and attr.decode() or attr
