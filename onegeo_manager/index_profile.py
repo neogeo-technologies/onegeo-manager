@@ -130,6 +130,16 @@ def fetch_mapping(p):
             # 'store': False,
             'type': p.column_type}
 
+    if p.column_type == 'geo_shape':
+        return {'type': 'p.column_type',
+                'tree': 'quadtree',
+                # 'precision': '',
+                # 'tree_levels': '',
+                # 'strategy': '',
+                'distance_error_pct': 0,
+                'orientation': 'counterclockwise',
+                'points_only': False}
+
 
 class PropertyColumn(object):
 

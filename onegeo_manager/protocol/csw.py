@@ -69,18 +69,19 @@ class Source(AbstractSource):
                     ('contact', 'object'),
                     ('date_publication', 'date'),
                     ('denominators', 'integer'),
-                    ('distance', 'integer'),
+                    # ('distance', 'integer'),
                     ('identifier', 'text'),
                     ('keyword', 'object'),
                     ('lineage', 'text'),
                     ('parent_identifier', 'text'),
+                    ('resolution', 'object'),
                     ('rights', 'text'),
                     ('spatial_type', 'text'),
                     ('standard', 'object'),
                     ('title', 'text'),
                     ('topic_category', 'text'),
                     ('type', 'text'),
-                    ('uom', 'text'),
+                    # ('uom', 'text'),
                     ('uris', 'object'),
                     ('use_constraints', 'text'),
                     ('use_limitation', 'text'),
@@ -142,8 +143,16 @@ class Source(AbstractSource):
             self._csw.getrecords2(**params)
             records = list(self._csw.records.values())
             for rec in records:
-
                 if rec.__class__.__name__ == 'MD_Metadata':
+
+                    resolution = []
+                    distance = rec.identification.distance
+                    uom = rec.identification.uom
+                    if len(distance) == len(uom):
+                        for i in range(len(distance)):
+                            resolution.append({
+                                'uom': uom[i], 'distance': distance[i]})
+
                     data = {
                         'abstract': rec.identification.abstract,
                         'bbox': rec.identification.bbox and {
@@ -168,7 +177,6 @@ class Source(AbstractSource):
                             if m.__class__.__name__ == 'CI_Date'
                             and m.type == 'publication'],
                         'denominators': rec.identification.denominators,
-                        'distance': rec.identification.distance,
                         'identifier': rec.identifier,
                         'keyword': [y for x in [
                             m.keywords for m in rec.identification.keywords2
@@ -176,6 +184,7 @@ class Source(AbstractSource):
                             for y in x],
                         'lineage': rec.dataquality.lineage,
                         'parent_identifier': rec.parentidentifier,
+                        'resolution': resolution,
                         'rights': list(itertools.chain(
                             rec.identification.accessconstraints,
                             rec.identification.securityconstraints,
@@ -188,7 +197,6 @@ class Source(AbstractSource):
                         'title': rec.identification.title,
                         'type': rec.hierarchy,
                         'topic_category': rec.identification.topiccategory,
-                        'uom': rec.identification.uom,
                         'use_constraints': rec.identification.useconstraints,
                         'use_limitation': rec.identification.uselimitation,
                         'uris': rec.distribution.online and [
@@ -222,7 +230,7 @@ class Source(AbstractSource):
                         data[col['name']] = \
                             isinstance(attr, bytes) and attr.decode() or attr
 
-                yield clean_my_obj(data, fading=True)
+                yield clean_my_obj(data, fading=False)
 
             if len(records) < step:
                 break
