@@ -113,7 +113,8 @@ def fetch_mapping(p):
             # 'index': True,
             # 'null_value'
             # 'store': False,
-            'type': p.column_type}
+            # 'type': p.column_type
+            }
 
     if p.column_type == 'boolean':
         return {

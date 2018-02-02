@@ -142,8 +142,10 @@ class Resource(AbstractResource):
 
     @staticmethod
     def column_type_mapper(val):
-        switcher = {'string': 'text'}
-        return switcher.get(val, val)
+        return {
+            'TimeInstantType': 'date',  # TODO- > Date + format
+            'string': 'text'
+            }.get(val, val)
 
     @staticmethod
     def geometry_type_mapper(val):
@@ -167,9 +169,10 @@ class Resource(AbstractResource):
         if self.geometry_type_mapper(column_type):
             self.set_geometry_column(column_type)
         else:
-            column_type and self.column_type_mapper(column_type)
-            super().add_column(
-                name, column_type=None, occurs=(0, 1), count=None, rule=rule)
+            column_type = \
+                column_type and self.column_type_mapper(column_type) or None
+            super().add_column(name, column_type=column_type,
+                               occurs=occurs, count=count, rule=rule)
 
 
 class Source(AbstractSource):
