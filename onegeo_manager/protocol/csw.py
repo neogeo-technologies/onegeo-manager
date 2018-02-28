@@ -76,6 +76,7 @@ class Source(AbstractSource):
                     ('parent_identifier', 'text'),
                     ('resolution', 'object'),
                     ('rights', 'text'),
+                    ('schema', 'text'),
                     ('spatial_type', 'text'),
                     ('standard', 'object'),
                     ('title', 'text'),
@@ -106,6 +107,7 @@ class Source(AbstractSource):
                     ('relation', 'text'),  # dc
                     ('rights', 'text'),  # dc
                     # ('rightsholder', 'text'),  # dct
+                    ('schema', 'text'),
                     # ('spatial', 'text'),  # dct
                     ('source', 'text'),  # dc
                     ('subjects', 'text'),  # dc
@@ -122,27 +124,30 @@ class Source(AbstractSource):
 
     def get_collection(self, resource, step=10, id_record=[]):
 
+        outputschema = tuple(
+            tuple(k for v in l if v == resource.name)[0]
+            for k, l in self.OUTPUSCHEMA.items()
+            if resource.name in l)[0]
+
         params = {
-            'cql': "type LIKE '{0}'".format(resource.name),
+            'cql': "type='{0}'".format(resource.name),
             'esn': 'full',
             'format': 'application/xml',
             'maxrecords': step,
-            'outputschema': tuple(
-                tuple(k for v in l if v == resource.name)[0]
-                for k, l in self.OUTPUSCHEMA.items()
-                if resource.name in l)[0],
+            'outputschema': outputschema,
             'resulttype': 'results',
             'startposition': 0,
             'typenames': 'csw:Record'}
 
         if len(id_record) > 0:
-            params['cql'] = "type LIKE '{0}' AND (identifier LIKE '{1}')".format(
-                resource.name, "' OR identifier LIKE '".join(id_record))
+            params['cql'] += " AND (identifier='{1}')".format(
+                resource.name, "' OR identifier='".join(id_record))
 
         while True:
             self._csw.getrecords2(**params)
             records = list(self._csw.records.values())
             for rec in records:
+                data = {}
                 if rec.__class__.__name__ == 'MD_Metadata':
 
                     resolution = []
@@ -153,7 +158,7 @@ class Source(AbstractSource):
                             resolution.append({
                                 'uom': uom[i], 'distance': distance[i]})
 
-                    data = {
+                    data.update(**{
                         'abstract': rec.identification.abstract,
                         'bbox': rec.identification.bbox and {
                             'type': 'Polygon',
@@ -202,10 +207,9 @@ class Source(AbstractSource):
                         'uris': rec.distribution.online and [
                             m.__dict__ for m in rec.distribution.online
                             if m.__class__.__name__ == 'CI_OnlineResource'],
-                        'xml': rec.xml}
+                        'xml': rec.xml})
 
                 if rec.__class__.__name__ == 'CswRecord':
-                    data = {}
                     for col in resource.iter_columns():
                         try:
                             attr = getattr(rec, col['name'])
@@ -225,6 +229,8 @@ class Source(AbstractSource):
 
                         data[col['name']] = \
                             isinstance(attr, bytes) and attr.decode() or attr
+
+                data.update(schema=outputschema)
 
                 yield clean_my_obj(data, fading=False)
 
