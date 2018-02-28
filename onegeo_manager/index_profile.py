@@ -36,7 +36,7 @@ def fetch_mapping(p):
         if not p.searchable:
             return not_searchable(p.column_type)
 
-        return {
+        d = {
             'analyzer': p.analyzer,
             'boost': p.weight,
             # 'eager_global_ordinals'
@@ -67,6 +67,10 @@ def fetch_mapping(p):
             # 'similarity': 'classic',
             # 'term_vector': 'yes',
             'type': 'text'}
+
+        if p.suggest:
+            d['fields']['suggest'] = {'type': 'completion'}
+        return d
 
     if p.column_type == 'keyword':
         return {
@@ -106,15 +110,14 @@ def fetch_mapping(p):
         return {
             # 'boost': p.weight,
             # 'doc_values': True,
-            # 'format': p.pattern,
+            'format': p.pattern or 'strict_date_optional_time||epoch_millis',
             # 'locale'
-            # 'ignore_malformed': True,
+            'ignore_malformed': True,
             # 'include_in_all': False,
             # 'index': True,
-            # 'null_value'
+            # 'null_value': 'null',
             # 'store': False,
-            # 'type': p.column_type
-            }
+            'type': p.column_type}
 
     if p.column_type == 'boolean':
         return {
@@ -137,7 +140,7 @@ def fetch_mapping(p):
                 # 'precision': '',
                 # 'tree_levels': '',
                 # 'strategy': '',
-                'distance_error_pct': 0,
+                # 'distance_error_pct': 0,
                 'orientation': 'counterclockwise',
                 'points_only': False}
 
@@ -152,7 +155,8 @@ class PropertyColumn(object):
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
-                 analyzer=None, search_analyzer=None, count=None, rule=None):
+                 analyzer=None, search_analyzer=None, count=None, rule=None,
+                 suggest=False):
 
         self._rule = rule
         self._name = name
@@ -167,6 +171,7 @@ class PropertyColumn(object):
         self._pattern = pattern
         self._analyzer = analyzer
         self._search_analyzer = search_analyzer
+        self._suggest = suggest
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE
@@ -226,6 +231,10 @@ class PropertyColumn(object):
         self._searchable = val
 
     @property
+    def suggest(self):
+        return self._suggest
+
+    @property
     def weight(self):
         return self._weight
 
@@ -279,7 +288,8 @@ class PropertyColumn(object):
                 'weight': self._weight,
                 'pattern': self._pattern,
                 'analyzer': self._analyzer,
-                'search_analyzer': self._search_analyzer}
+                'search_analyzer': self._search_analyzer,
+                'suggest': self._suggest}
 
 
 class AbstractIndexProfile(metaclass=ABCMeta):
@@ -351,6 +361,8 @@ class AbstractIndexProfile(metaclass=ABCMeta):
                     p.analyzer(value)
                 if param == 'search_analyzer':
                     p.search_analyzer(value)
+                if param == 'suggest':
+                    p.suggest(value)
 
     @property
     def tags(self):

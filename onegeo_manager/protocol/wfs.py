@@ -339,17 +339,17 @@ class IndexProfile(AbstractIndexProfile):
 
     def generate_elastic_mapping(self):
 
-        if self.resource.geometry in ('Point', 'MultiPoint'):
-            geometry_mapping = {'type': 'geo_point', 'ignore_malformed': True}
-        else:
-            geometry_mapping = {'type': 'geo_shape',
-                                'tree': 'quadtree',
-                                # 'precision': '',
-                                # 'tree_levels': '',
-                                # 'strategy': '',
-                                'distance_error_pct': 0,
-                                'orientation': 'counterclockwise',
-                                'points_only': False}
+        # if self.resource.geometry in ('Point', 'MultiPoint'):
+        #     geometry_mapping = {'type': 'geo_point', 'ignore_malformed': True}
+        # else:
+        geometry_mapping = {'type': 'geo_shape',
+                            'tree': 'quadtree',
+                            # 'precision': '',
+                            # 'tree_levels': '',
+                            # 'strategy': '',
+                            'distance_error_pct': 0,
+                            'orientation': 'counterclockwise',
+                            'points_only': False}
 
         props = {}
         for p in self.iter_properties():
