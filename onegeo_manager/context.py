@@ -652,7 +652,7 @@ class PdfContext(AbstractContext):
                             'name': self.resource.source.name,
                             'uri': self.resource.source.uri,
                             'type': self.resource.source.mode}},
-                    'properties': set_aliases(doc['properties']),
+                    'properties': doc['properties'] and set_aliases(doc['properties']) or None,
                     'raw_data': doc['file']}
 
         return wrapper
