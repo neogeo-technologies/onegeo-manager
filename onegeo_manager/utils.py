@@ -14,8 +14,49 @@
 # under the License.
 
 
+import ast
+from collections import OrderedDict
 import operator
 import re
+
+
+# Cool stuffs about obj..
+
+
+def iterate(obj, parent=None, path=list()):
+    """Iterates any obj and returns value with his path."""
+    parent and path.append(parent)
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            yield from iterate(value, parent=key, path=path)
+            path.pop()
+    elif any(isinstance(obj, t) for t in (list, tuple)):
+        for item in obj:
+            yield from iterate(item, path=path)
+    else:
+        yield obj, path
+        path = list()
+
+
+def deconstruct(obj):
+    """Deconstruct any obj then returns statistics of this one."""
+    inputted = OrderedDict()
+    for value, path in iterate(obj):
+        path = path.__str__()
+        if path in inputted.keys():
+            inputted[path] += 1
+        else:
+            inputted.update({path: 1})
+
+    outputted = OrderedDict()
+    for k, v in inputted.items():
+        k = tuple(ast.literal_eval(k))
+        if v in outputted:
+            outputted[v].append(k)
+        else:
+            outputted[v] = [k]
+
+    return tuple(sorted((k, tuple(v)) for k, v in outputted.items()))
 
 
 def clean_my_dict(d):
