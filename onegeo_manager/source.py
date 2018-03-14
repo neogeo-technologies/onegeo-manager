@@ -20,6 +20,7 @@ from importlib import import_module
 import inspect
 from onegeo_manager.exception import ProtocolNotFoundError
 import os.path
+import re
 
 
 __all__ = ['Source']
@@ -51,8 +52,12 @@ class Source(object):
         try:
             ext = import_module(
                 'onegeo_manager.protocol.{0}'.format(protocol), __name__)
-        except ModuleNotFoundError as e:
-            raise ProtocolNotFoundError
+        except Exception as e:
+            if e.__class__.__qualname__ == 'ModuleNotFoundError' \
+                    and re.search("No module named 'onegeo_manager.protocol.\w+'", e.msg):
+                raise ProtocolNotFoundError(
+                    "No protocol named '{}'".format(protocol))
+            raise e
 
         self = object.__new__(ext.Source)
         self.__init__(uri, **kwargs)

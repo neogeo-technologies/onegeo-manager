@@ -18,6 +18,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from importlib import import_module
 from onegeo_manager.exception import ProtocolNotFoundError
+import re
 
 
 __all__ = ['IndexProfile', 'PropertyColumn']
@@ -396,8 +397,12 @@ class IndexProfile(object):
         try:
             ext = import_module(
                 'onegeo_manager.protocol.{0}'.format(protocol), __name__)
-        except ModuleNotFoundError:
-            raise ProtocolNotFoundError
+        except Exception as e:
+            if e.__class__.__qualname__ == 'ModuleNotFoundError' \
+                    and re.search("No module named 'onegeo_manager.protocol.\w+'", e.msg):
+                raise ProtocolNotFoundError(
+                    "No protocol named '{}'".format(protocol))
+            raise e
 
         self = object.__new__(ext.IndexProfile)
         self.__init__(name, resource)
