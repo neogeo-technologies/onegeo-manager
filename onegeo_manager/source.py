@@ -38,10 +38,10 @@ class AbstractSource(metaclass=ABCMeta):
         raise NotImplementedError(
             "This is an abstract method. You can't do anything with it.")
 
-    @abstractmethod
-    def get_collection(self, *args, **kwargs):
-        raise NotImplementedError(
-            "This is an abstract method. You can't do anything with it.")
+    # @abstractmethod
+    # def get_collection(self, *args, **kwargs):
+    #     raise NotImplementedError(
+    #         "This is an abstract method. You can't do anything with it.")
 
 
 class Source(object):
@@ -51,7 +51,7 @@ class Source(object):
         try:
             ext = import_module(
                 'onegeo_manager.protocol.{0}'.format(protocol), __name__)
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
             raise ProtocolNotFoundError
 
         self = object.__new__(ext.Source)

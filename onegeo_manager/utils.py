@@ -14,17 +14,34 @@
 # under the License.
 
 
-import ast
-from collections import OrderedDict
+import itertools
+# import math
+# import numpy as np
 import operator
 import re
 
 
 # Cool stuffs about obj..
 
+# def get_weighted_std_dev(val, wgt):
+#     """Return the standard deviation of a weighted serie."""
+#     return math.sqrt(
+#         np.average((val - np.average(val, weights=wgt)) ** 2, weights=wgt))
+
+
+def accumulate(obj):  # TODO: recursive
+    for occur, subiter in itertools.groupby(obj, key=operator.itemgetter(0)):
+        mapped = map(operator.itemgetter(1), subiter)
+        reiter = itertools.groupby(
+            mapped or subiter, key=operator.itemgetter(0))
+        for parent, subiter in reiter:
+            children = tuple(
+                e for n in tuple(m[1:] for m in subiter) for e in n) or None
+            yield occur, parent, children
+
 
 def iterate(obj, parent=None, path=list()):
-    """Iterates any obj and returns value with his path."""
+    """Iterate any obj and return value with his path."""
     parent and path.append(parent)
     if isinstance(obj, dict):
         for key, value in obj.items():
@@ -32,31 +49,11 @@ def iterate(obj, parent=None, path=list()):
             path.pop()
     elif any(isinstance(obj, t) for t in (list, tuple)):
         for item in obj:
-            yield from iterate(item, path=path)
+            yield from iterate(item, parent=not parent and 'root', path=path)
+            not parent and path and path.pop()
     else:
-        yield obj, path
+        yield tuple(path), obj
         path = list()
-
-
-def deconstruct(obj):
-    """Deconstruct any obj then returns statistics of this one."""
-    inputted = OrderedDict()
-    for value, path in iterate(obj):
-        path = path.__str__()
-        if path in inputted.keys():
-            inputted[path] += 1
-        else:
-            inputted.update({path: 1})
-
-    outputted = OrderedDict()
-    for k, v in inputted.items():
-        k = tuple(ast.literal_eval(k))
-        if v in outputted:
-            outputted[v].append(k)
-        else:
-            outputted[v] = [k]
-
-    return tuple(sorted((k, tuple(v)) for k, v in outputted.items()))
 
 
 def clean_my_dict(d):

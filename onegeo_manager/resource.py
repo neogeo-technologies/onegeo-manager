@@ -29,7 +29,7 @@ class AbstractResource(metaclass=ABCMeta):
                    'half_float', 'integer', 'integer_range', 'ip', 'keyword',
                    'long', 'long_range', 'scaled_float', 'short', 'text']
 
-    def __init__(self, source, name):
+    def __init__(self, source, name=None):
 
         if not source.__class__.__qualname__ == 'Source':
             raise TypeError("Argument should be an instance of 'Source'.")
@@ -93,18 +93,23 @@ class AbstractResource(metaclass=ABCMeta):
     def is_existing_column(self, val):
         return val in self.iter_column_name()
 
+    # @abstractmethod
+    # def get_collection(self, *args, **kwargs):
+    #     raise NotImplementedError(
+    #         "This is an abstract method. You can't do anything with it.")
+
 
 class Resource(object):
 
-    def __new__(self, source, name):
+    def __new__(self, source, name=None):
 
         protocol = source.protocol
         try:
             ext = import_module(
                 'onegeo_manager.protocol.{0}'.format(protocol), __name__)
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
             raise ProtocolNotFoundError
 
         self = object.__new__(ext.Resource)
-        self.__init__(source, name)
+        self.__init__(source, name=name)
         return self

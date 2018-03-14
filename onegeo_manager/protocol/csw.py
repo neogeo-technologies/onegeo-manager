@@ -31,11 +31,14 @@ __description__ = 'OGC:CSW'
 
 class Resource(AbstractResource):
 
-    def __init__(self, source, name):
-        super().__init__(source, name)
+    def __init__(self, source, name=None):
+        super().__init__(source, name=name)
 
     def authorized_column_type(self, val):
         return val in operator.add(self.COLUMN_TYPE, ['object', 'geo_shape'])
+
+    def get_collection(self, step=10, id_record=[]):
+        raise NotImplementedError('TODO')
 
 
 class Source(AbstractSource):

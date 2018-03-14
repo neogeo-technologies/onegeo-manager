@@ -126,8 +126,8 @@ class Resource(AbstractResource):
     GEOMETRY_TYPE = ['Point', 'MultiPoint', 'Polygon', 'MultiPolygon',
                      'LineString', 'MultiLineString', 'GeometryCollection']
 
-    def __init__(self, source, name):
-        super().__init__(source, name)
+    def __init__(self, source, name=None):
+        super().__init__(source, name=None)
 
         capacity = self.source._retreive_ft_meta(name)
 
@@ -173,6 +173,9 @@ class Resource(AbstractResource):
                 column_type and self.column_type_mapper(column_type) or None
             super().add_column(name, column_type=column_type,
                                occurs=occurs, count=count, rule=rule)
+
+    def get_collection(self, step=100):
+        raise NotImplementedError('TODO')
 
 
 class Source(AbstractSource):
@@ -236,9 +239,9 @@ class Source(AbstractSource):
             resources.append(resource)
         return resources
 
-    def get_collection(self, resource_name, step=100):
+    def get_collection(self, resource, step=100):
 
-        capacity = self._retreive_ft_meta(resource_name)
+        capacity = self._retreive_ft_meta(resource.name)
 
         params = {'version': self.capabilities['@version']}
 
@@ -273,7 +276,7 @@ class Source(AbstractSource):
             params[k] = s.group(0)
 
         params.update(
-            {'typenames': resource_name, 'startindex': 0, 'count': step})
+            {'typenames': resource.name, 'startindex': 0, 'count': step})
 
         while True:
             data = self.__get_feature(**params)['features']
