@@ -127,7 +127,7 @@ class Resource(AbstractResource):
                      'LineString', 'MultiLineString', 'GeometryCollection']
 
     def __init__(self, source, name=None):
-        super().__init__(source, name=None)
+        super().__init__(source, name=name)
 
         capacity = self.source._retreive_ft_meta(name)
 

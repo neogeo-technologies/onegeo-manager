@@ -26,6 +26,7 @@ from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import accumulate
 from onegeo_manager.utils import clean_my_obj
 from onegeo_manager.utils import iterate
+import operator
 from pathlib import Path
 import re
 import requests
@@ -86,7 +87,9 @@ class Source(AbstractSource):
         # Deconstructs json data
         counter = Counter(path for path, value in iterate(self._data))
         # Then returns statistics of this one
-        inputted = ((v, k) for k, v in dict(counter).items())
+        inputted = (
+            (v, k)
+            for k, v in sorted(counter.items(), key=operator.itemgetter(1)))
 
         # This is for testing with simple-feature...
         occurs = []
