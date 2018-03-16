@@ -82,7 +82,7 @@ class Source(AbstractSource):
             if s and s.group(2) == 'json':
                 return r.json()
 
-    def get_resources(self):
+    def get_resources(self, *args, **kwargs):
 
         # Deconstructs json data
         counter = Counter(path for path, value in iterate(self._data))
