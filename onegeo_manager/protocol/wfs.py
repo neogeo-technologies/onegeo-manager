@@ -239,9 +239,9 @@ class Source(AbstractSource):
             resources.append(resource)
         return resources
 
-    def get_collection(self, resource, step=100):
+    def get_collection(self, resource_name, step=100):
 
-        capacity = self._retreive_ft_meta(resource.name)
+        capacity = self._retreive_ft_meta(resource_name)
 
         params = {'version': self.capabilities['@version']}
 
@@ -276,7 +276,7 @@ class Source(AbstractSource):
             params[k] = s.group(0)
 
         params.update(
-            {'typenames': resource.name, 'startindex': 0, 'count': step})
+            {'typenames': resource_name, 'startindex': 0, 'count': step})
 
         while True:
             data = self.__get_feature(**params)['features']
