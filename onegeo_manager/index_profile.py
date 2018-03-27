@@ -343,27 +343,27 @@ class AbstractIndexProfile(metaclass=ABCMeta):
         for p in self.iter_properties():
             if p.name == name:
                 if param == 'alias':
-                    p.alias(value)
+                    p.alias = value
                 if param in ('column_type', 'type'):
-                    p.column_type(value)
+                    p.column_type = value
                 if param == 'occurs':
-                    p.occurs(value)
+                    p.occurs = value
                 if param == 'rejected':
-                    p.rejected(value)
+                    p.rejected = value
                 if param == 'searchable':
-                    p.searchable(value)
+                    p.searchable = value
                 if param == 'weight':
-                    p.weight(value)
+                    p.weight = value
                 if param == 'pattern':
-                    p.pattern(value)
+                    p.pattern = value
                 if param == 'rule':
-                    p.rule(value)
+                    p.rule = value
                 if param == 'analyzer':
-                    p.analyzer(value)
+                    p.analyzer = value
                 if param == 'search_analyzer':
-                    p.search_analyzer(value)
+                    p.search_analyzer = value
                 if param == 'suggest':
-                    p.suggest(value)
+                    p.suggest = value
 
     @property
     def tags(self):
