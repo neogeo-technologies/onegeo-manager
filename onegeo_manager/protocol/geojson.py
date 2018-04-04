@@ -74,7 +74,7 @@ class Source(AbstractSource):
                 r.raise_for_status()
             pattern = '^(text|application)\/((\w+)\+?)+\;?(((\s?\w+\=[\w\d\D]+)|(subtype\=geojson));?)*$'
             if re.match(pattern, r.headers['Content-Type']):
-                return geojson.loads(r._content)
+                return geojson.loads(r._content.decode('utf-8'))
 
     def get_resources(self, *args, **kwargs):
         data = self._data
