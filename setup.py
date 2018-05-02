@@ -40,6 +40,7 @@ setup(
         'Programming Language :: Python :: 3.6'],
     packages=find_packages(where='.'),
     install_requires=[
+        'geojson>=2.3.0,<2.4.0',
         'neogeo_xml_utils==0.0.1',
         'numpy>=1.14.0,<1.15.0',
         'OWSLib>=0.16.0',
