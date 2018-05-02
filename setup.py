@@ -41,6 +41,7 @@ setup(
     packages=find_packages(where='.'),
     install_requires=[
         'neogeo_xml_utils==0.0.1',
+        'numpy>=1.14.0,<1.15.0',
         'OWSLib>=0.16.0',
         'requests>=2.13.0'],
     dependency_links=[
