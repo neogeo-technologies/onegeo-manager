@@ -34,6 +34,7 @@ def fetch_mapping(p):
                     'index': False,
                     'index_options': 'freqs',
                     'norms': True,
+                    'normalizer': p.normalizer,
                     # 'null_value'
                     'store': False,
                     'similarity': 'classic',
@@ -61,6 +62,7 @@ def fetch_mapping(p):
             'index': True,
             'index_options': 'docs',
             'norms': True,
+            'normalizer': p.normalizer,
             # 'null_value'
             'store': False,
             'similarity': 'classic',
@@ -123,7 +125,8 @@ class PropertyColumn(object):
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,
                  rejected=False, searchable=True, weight=None, pattern=None,
-                 analyzer=None, search_analyzer=None, count=None, rule=None):
+                 analyzer=None, search_analyzer=None, count=None, rule=None,
+                 normalizer=None):
 
         self.__rule = rule
         self.__name = name
@@ -138,6 +141,7 @@ class PropertyColumn(object):
         self.__pattern = None
         self.__analyzer = None
         self.__search_analyzer = None
+        self.__normalizer = None
 
         self.set_alias(alias)
         self.set_column_type(column_type or 'text')
@@ -150,6 +154,7 @@ class PropertyColumn(object):
             self.set_pattern(pattern)
         self.set_analyzer(analyzer)
         self.set_search_analyzer(search_analyzer)
+        self.set_normalizer(normalizer)
 
     def authorized_column_type(self, val):
         return val in self.COLUMN_TYPE
@@ -202,6 +207,10 @@ class PropertyColumn(object):
     def search_analyzer(self):
         return self.__search_analyzer
 
+    @property
+    def normalizer(self):
+        return self.__normalizer
+
     def set_alias(self, val):
         self.__alias = val
 
@@ -249,6 +258,11 @@ class PropertyColumn(object):
             val = None
         self.__search_analyzer = val
 
+    def set_normalizer(self, val):
+        if val == '':
+            val = None
+        self.__normalizer = val
+
     def all(self):
         return {'name': self.name,
                 'count': self.count,
@@ -259,6 +273,7 @@ class PropertyColumn(object):
                 'searchable': self.searchable,
                 'weight': self.weight,
                 'pattern': self.pattern,
+                'normalizer': self.normalizer,
                 'analyzer': self.analyzer,
                 'search_analyzer': self.search_analyzer}
 
@@ -350,6 +365,8 @@ class AbstractContext(metaclass=ABCMeta):
                     p.set_analyzer(value)
                 if param == 'search_analyzer':
                     p.set_search_analyzer(value)
+                if param == 'normalizer':
+                    p.set_normalizer(value)
 
     # def update_property(self, name, **params):
     #     for p in self.iter_properties():
