@@ -24,8 +24,7 @@ __all__ = ['IndexProfile', 'PropertyColumn']
 
 
 not_searchable = lambda val: {
-    'include_in_all': False,
-    'index': 'not_analyzed',
+    'index': False,
     'store': False,
     'type': val}
 
@@ -56,7 +55,6 @@ def fetch_mapping(p):
                     # 'store': False,
                     # 'similarity': 'classic',
                     'type': 'keyword'}},
-            # 'include_in_all': False,
             # 'index': True,
             # 'index_options': 'offsets',
             # 'norms': True,
@@ -79,7 +77,6 @@ def fetch_mapping(p):
             # 'eager_global_ordinals'
             # 'fields'
             'ignore_above': 256,
-            # 'include_in_all': False,
             # 'index': True,
             # 'index_options': 'docs',
             # 'norms': True,
@@ -97,7 +94,6 @@ def fetch_mapping(p):
             # 'boost': p.weight,
             # 'doc_values': True,
             # 'ignore_malformed': True,
-            # 'include_in_all': False,
             # 'index': True,
             # 'null_value'
             # 'store': False,
@@ -113,7 +109,6 @@ def fetch_mapping(p):
             'format': p.pattern or 'strict_date_optional_time||epoch_millis',
             # 'locale'
             'ignore_malformed': True,
-            # 'include_in_all': False,
             # 'index': True,
             # 'null_value': 'null',
             # 'store': False,
