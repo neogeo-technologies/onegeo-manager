@@ -255,26 +255,28 @@ class IndexProfile(AbstractIndexProfile):
         @wraps(fun)
         def wrapper(self, *args, **kwargs):
 
-            def set_aliases(properties):
-                new = {}
-                for k, v in properties.items():
+            for record in fun(self, *args, **kwargs):
+
+                properties, _backuped = {}, {}
+                for k, v in record.items():
                     prop = self.get_property(k)
                     if prop.rejected:
-                        continue
-                    new[prop.alias or prop.name] = v
-                return new
+                        _backuped[prop.name] = v
+                    else:
+                        properties[prop.alias or prop.name] = v
 
-            for record in fun(self, *args, **kwargs):
                 xml = 'xml' in record and record.pop('xml') or None
                 uris = 'uris' in record and record.pop('uris') or None
                 yield {
+                    '_backup': _backuped,
+                    '_md5': None,
                     'lineage': {
                         'resource': {
                             'name': self.resource.name},
                         'source': {
                             'protocol': self.resource.source.protocol,
                             'uri': self.resource.source.uri}},
-                    'properties': set_aliases(record),
+                    'properties': properties,
                     'uri': uris,
                     'xml': xml}
 

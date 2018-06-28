@@ -25,6 +25,7 @@ from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import browse
 from onegeo_manager.utils import clean_my_obj
+from onegeo_manager.utils import digest_object
 from onegeo_manager.utils import StaticClass
 import operator
 import re
@@ -313,18 +314,19 @@ class IndexProfile(AbstractIndexProfile):
 
         @wraps(fun)
         def wrapper(self, *args, **kwargs):
+            for record in fun(self, *args, **kwargs):
 
-            def alias(properties):
-                new = {}
-                for k, v in properties.items():
+                properties, _backuped = {}, {}
+                for k, v in record['properties'].items():
                     prop = self.get_property(k)
                     if prop.rejected:
-                        continue
-                    new[prop.alias or prop.name] = v
-                return new
+                        _backuped[prop.name] = v
+                    else:
+                        properties[prop.alias or prop.name] = v
 
-            for record in fun(self, *args, **kwargs):
                 yield {
+                    '_backup': _backuped,
+                    '_md5': digest_object(record),
                     'geometry': record.get('geometry'),
                     'lineage': {
                         'resource': {
@@ -332,7 +334,7 @@ class IndexProfile(AbstractIndexProfile):
                         'source': {
                             'protocol': self.resource.source.protocol,
                             'uri': self.resource.source.uri}},
-                    'properties': alias(record['properties'])}
+                    'properties': properties}
 
         return wrapper
 

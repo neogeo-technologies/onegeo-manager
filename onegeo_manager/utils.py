@@ -14,7 +14,10 @@
 # under the License.
 
 
+import hashlib
+from io import StringIO
 import itertools
+import json
 # import math
 # import numpy as np
 import operator
@@ -169,3 +172,14 @@ class Singleton(type):
         # else:
         #     cls._instances[cls].__init__(*args, **kwargs)
         return cls.__instances[cls]
+
+
+def digest_object(obj, encoding='utf-8'):
+    """Convert any object to md5 hex digest through a ordonned and minified JSON data."""
+    io = StringIO()
+    json.dump(
+        obj, io, skipkeys=False, ensure_ascii=False,
+        check_circular=True, allow_nan=True, cls=None, indent=None,
+        separators=(',', ':'), default=None, sort_keys=True)
+
+    return hashlib.md5(io.getvalue().encode(encoding)).hexdigest()
