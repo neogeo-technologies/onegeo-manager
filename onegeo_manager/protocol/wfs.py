@@ -144,6 +144,7 @@ class Resource(AbstractResource):
     @staticmethod
     def column_type_mapper(val):
         return {
+            'dateTime': 'date',
             'TimeInstantType': 'date',  # TODO- > Date + format
             'string': 'text'
             }.get(val, val)
