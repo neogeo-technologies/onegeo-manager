@@ -145,7 +145,7 @@ class PropertyColumn(object):
 
     COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
                    'double', 'double_range', 'float', 'float_range',
-                   'half_float', 'integer', 'integer_range', 'ip',
+                   'geo_shape', 'half_float', 'integer', 'integer_range', 'ip',
                    'keyword', 'long', 'long_range', 'pdf', 'scaled_float',
                    'short', 'text', 'object']
 

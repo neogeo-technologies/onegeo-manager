@@ -34,6 +34,8 @@ class Resource(AbstractResource):
     def __init__(self, source, name=None):
         super().__init__(source, name=name)
 
+        self.title = name
+
     def authorized_column_type(self, val):
         return val in operator.add(self.COLUMN_TYPE, ['object', 'geo_shape'])
 
@@ -161,6 +163,18 @@ class Source(AbstractSource):
                             resolution.append({
                                 'uom': uom[i], 'distance': distance[i]})
 
+                    contact = []
+                    if rec.identification.contact:
+                        for m in rec.identification.contact:
+                            if m.__class__.__name__ == 'CI_ResponsibleParty':
+                                d = {}
+                                for k in m.__dict__.keys():
+                                    v = getattr(m, k)
+                                    if v.__class__.__name__ == 'CI_OnlineResource':
+                                        v = v.__dict__
+                                    d[k] = v
+                                contact.append(d)
+
                     data.update(**{
                         'abstract': rec.identification.abstract,
                         'bbox': rec.identification.bbox and {
@@ -177,9 +191,7 @@ class Source(AbstractSource):
                                 [rec.identification.bbox.minx,
                                  rec.identification.bbox.miny]]]},
                         'classification': rec.identification.classification,
-                        'contact': rec.identification.contact and [
-                            m.__dict__ for m in rec.identification.contact
-                            if m.__class__.__name__ == 'CI_ResponsibleParty'],
+                        'contact': contact,
                         'date_publication': rec.identification.date and [
                             m.date for m in rec.identification.date
                             if m.__class__.__name__ == 'CI_Date'
@@ -210,7 +222,7 @@ class Source(AbstractSource):
                         'uris': rec.distribution.online and [
                             m.__dict__ for m in rec.distribution.online
                             if m.__class__.__name__ == 'CI_OnlineResource'],
-                        'xml': rec.xml})
+                        'xml': rec.xml.decode('utf-8')})
 
                 if rec.__class__.__name__ == 'CswRecord':
                     for col in resource.iter_columns():
@@ -278,7 +290,7 @@ class IndexProfile(AbstractIndexProfile):
                             'uri': self.resource.source.uri}},
                     'properties': properties,
                     'uri': uris,
-                    'xml': xml}
+                    'xml': isinstance(xml, bytes) and xml.decode('utf-8') or xml}
 
         return wrapper
 
