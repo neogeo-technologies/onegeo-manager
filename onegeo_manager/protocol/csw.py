@@ -279,6 +279,8 @@ class IndexProfile(AbstractIndexProfile):
 
                 xml = 'xml' in record and record.pop('xml') or None
                 uris = 'uris' in record and record.pop('uris') or None
+                geometry = 'bbox' in properties and properties.pop('bbox') or None
+
                 yield {
                     '_backup': _backuped,
                     '_md5': None,
@@ -289,6 +291,7 @@ class IndexProfile(AbstractIndexProfile):
                             'protocol': self.resource.source.protocol,
                             'uri': self.resource.source.uri}},
                     'properties': properties,
+                    'geometry': geometry,
                     'uri': uris,
                     'xml': isinstance(xml, bytes) and xml.decode('utf-8') or xml}
 
