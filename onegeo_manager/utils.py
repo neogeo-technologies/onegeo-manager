@@ -91,69 +91,29 @@ def from_camel_was_born_snake(txt):
 
 
 def browse(obj, *tag):
-    if tag[0] in obj:
-        if len(tag) == 1:
-            return obj[tag[0]]
-        if isinstance(obj[tag[0]], dict):
-            return browse(obj[tag[0]], *tag[1:])
-        if isinstance(obj[tag[0]], list):
-            cache = []
-            for i in range(len(obj[tag[0]])):
-                val = browse(obj[tag[0]][i], *tag[1:])
-                if val is not None:
-                    cache.append(val)
-            return cache
+    if not isinstance(obj, dict):
+        return None
+    if len(tag) == 0:
+        return None
 
-
-def browse2(obj, lst):
-    if type(obj) == list:
-        arr = []
-        for e in obj:
-            val = browse2(e, lst)
-            if val:
-                arr.append(val)
-        return arr
-
-    if len(lst) == 1:
-        try:
-            e, regex = tuple(lst[0].split('~'))
-        except Exception:
-            e = lst[0]
-        else:
-            if not re.match(regex, obj[e]):
-                return
-        if e not in obj:
-            return None
-        target = obj[e]
-        if type(target) == list:
-            n = []
-            for m in target:
-                if type(m) == str:
-                    n.append(m or None)
-                if type(m) == list:
-                    operator.add(n, m)
-                if type(m) == dict:
-                    n.append(m['$'] or None)
-            target = n
-        return target
-
-    try:
-        k, v = tuple(lst[0].split('[')[-1][:-1].split('='))
-    except Exception:
-        e, k, v = lst[0], None, None
-    else:
-        e = lst[0].split('[')[0]
-
-    if type(obj) == dict and e not in obj:
-        return
-
-    if type(obj) == dict and e in obj:
-        if k and (k in obj and obj[k] != v):
-            return
-        return browse2(obj[e], lst[1:])
+    regex = tag[0]
+    for cursor in obj.keys():
+        if re.match(regex, cursor):
+            if len(tag) == 1:
+                return obj[cursor]
+            if isinstance(obj[cursor], dict):
+                return browse(obj[cursor], *tag[1:])
+            if isinstance(obj[cursor], list):
+                cache = []
+                for i in range(len(obj[cursor])):
+                    val = browse(obj[cursor][i], *tag[1:])
+                    if val is not None:
+                        cache.append(val)
+                return cache
 
 
 # Class types
+
 
 class StaticClass(type):
 

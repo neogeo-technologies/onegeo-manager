@@ -41,3 +41,8 @@ class UnexpectedError(GenericException):
 class ProtocolNotFoundError(GenericException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class NotYetImplemented(GenericException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

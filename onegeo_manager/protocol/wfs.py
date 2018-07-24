@@ -15,7 +15,7 @@
 
 
 from functools import wraps
-from neogeo_xml_utils import XMLToObj
+from onegeo_manager.exception import NotYetImplemented
 from onegeo_manager.exception import OGCExceptionReport
 from onegeo_manager.exception import UnexpectedError
 from onegeo_manager.index_profile import AbstractIndexProfile
@@ -30,6 +30,7 @@ from onegeo_manager.utils import StaticClass
 import operator
 import re
 import requests
+import xmltodict
 
 
 __description__ = 'OGC:WFS'
@@ -42,7 +43,7 @@ def response_converter(fun):
         response = fun(*args, **kwargs)
         if not isinstance(response, str):
             return response
-        data = XMLToObj(response, with_ns=False).data
+        data = xmltodict.parse(response, process_namespaces=False)
 
         if 'ExceptionReport' in data:
             report = data['ExceptionReport']
@@ -132,9 +133,9 @@ class Resource(AbstractResource):
 
         capacity = self.source._retreive_ft_meta(name)
 
-        self.title = browse(capacity, 'Title')
-        self.abstract = browse(capacity, 'Abstract')
-        self.metadata_url = browse(capacity, 'MetadataURL', '@href')
+        self.title = capacity.get('Title')
+        self.abstract = capacity.get('Abstract')
+        self.metadata_url = browse(capacity, 'MetadataURL', '@(xlink:)?href')
 
         self.geometry = 'GeometryCollection'
 
@@ -144,8 +145,10 @@ class Resource(AbstractResource):
     @staticmethod
     def column_type_mapper(val):
         return {
+            'decimal': 'float',
+            'int': 'integer',
             'dateTime': 'date',
-            'TimeInstantType': 'date',  # TODO- > Date + format
+            'TimeInstantType': 'date',  # TODO -> Date + format
             'string': 'text'
             }.get(val, val)
 
@@ -188,13 +191,11 @@ class Source(AbstractSource):
         self.username = username
         self.password = password
 
-        self.capabilities = self.__get_capabilities()['WFS_Capabilities']
+        self.capabilities = browse(self.__get_capabilities(), '(wfs:)?WFS_Capabilities')
 
-        self.title = browse(
-            self.capabilities, 'ServiceIdentification', 'Title')
-
-        self.abstract = browse(
-            self.capabilities, 'ServiceIdentification', 'Abstract')
+        _service_ident = browse(self.capabilities, '(ows:)?ServiceIdentification')
+        self.title = browse(_service_ident, '(ows:)?Title')
+        self.abstract = browse(_service_ident, '(ows:)?Abstract')
 
         self.metadata_url = ''
 
@@ -210,8 +211,8 @@ class Source(AbstractSource):
             version=self.capabilities['@version'],
             typename=','.join(names) or None)
 
-        sch_elts = desc['schema']['element']
-        sch_cplx_types = desc['schema']['complexType']
+        sch_elts = browse(desc, '(xsd:)?schema', '(xsd:)?element')
+        sch_cplx_types = browse(desc, '(xsd:)?schema', '(xsd:)?complexType')
 
         resources = []
         for sch_elt in iter([
@@ -230,7 +231,9 @@ class Source(AbstractSource):
                     ct = cplx_type
                     break
 
-            seq_elt = ct['complexContent']['extension']['sequence']['element']
+            seq_elt = browse(
+                ct, '(xsd:)?complexContent',
+                '(xsd:)?extension', '(xsd:)?sequence', '(xsd:)?element')
             for e in isinstance(seq_elt, dict) and [seq_elt] or seq_elt:
                 n = '@name' in e and str(e['@name']) or None
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None
@@ -241,7 +244,7 @@ class Source(AbstractSource):
             resources.append(resource)
         return resources
 
-    def get_collection(self, resource_name, step=100):
+    def get_collection(self, resource_name, step=500):
 
         capacity = self._retreive_ft_meta(resource_name)
 
@@ -251,34 +254,38 @@ class Source(AbstractSource):
             raise UnexpectedError(
                 'Version {0} not implemented.'.format(params['version']))
 
-        other_crs = capacity.get('OtherCRS', [])
-        crs_str = ', '.join(
-            operator.add(
-                isinstance(other_crs, str) and [other_crs] or other_crs,
-                [capacity['DefaultCRS']]))
-
         try:
-            format_str = ', '.join(capacity['OutputFormats']['Format'])
+            outputformats = ', '.join(capacity['OutputFormats']['Format'])
         except KeyError:
-            format_str = None
+            for op in browse(self.capabilities, '(ows:)?OperationsMetadata', '(ows:)?Operation'):
+                if op['@name'] == 'GetFeature':
+                    for p in browse(op, '(ows:)?Parameter'):
+                        if p['@name'] == 'outputFormat':
+                            outputformats = ', '.join(
+                                browse(p, '(ows:)?AllowedValues', '(ows:)?Value'))
+                            break
+        regex = '(((text|application)\/)?json\;?\s?((\w+=[^,;]+|(subtype\=geojson))\;?\s?)*)'
+        s = re.search(regex, outputformats)
+        if not s:
+            raise NotYetImplemented('GeoJSON is mandatory.')
+        params['outputformat'] = s.group(0)
 
-        testing = {
-            'srsname': {
-                'pattern': '((^|((\w*\:+)+))4326)',
-                'string': crs_str},
-            'outputformat': {
-                # Only GeoJSON format is supported
-                'pattern': '((text|application)\/json\;?\s?((\w+=[^,;]+|(subtype\=geojson))\;?\s?)*)',
-                'string': format_str}}
-
-        for k, v in testing.items():
-            s = re.search(v['pattern'], v['string'])
-            if not s:
-                raise UnexpectedError('GeoJSON Outputformat Not Found')
-            params[k] = s.group(0)
+        ## TODO
+        # other_crs = capacity.get('OtherCRS', [])
+        # crs_str = ', '.join(
+        #     operator.add(
+        #         isinstance(other_crs, str) and [other_crs] or other_crs,
+        #         [capacity['DefaultCRS']]))
+        #
+        # s = re.search('((^|((\w*\:+)+))4326)', crs_str)
+        # if not s:
+        #     raise UnexpectedError('')
+        # params['srsname'] = s.group(0)
+        params['srsname'] = 'urn:ogc:def:crs:EPSG::4326'
+        ##
 
         params.update(
-            {'typenames': resource_name, 'startindex': 0, 'count': step})
+            {'startindex': 0, 'count': step, 'typenames': resource_name})
 
         while True:
             data = self.__get_feature(**params)['features']
@@ -320,10 +327,11 @@ class IndexProfile(AbstractIndexProfile):
                 properties, _backuped = {}, {}
                 for k, v in record['properties'].items():
                     prop = self.get_property(k)
-                    if prop.rejected:
-                        _backuped[prop.name] = v
-                    else:
-                        properties[prop.alias or prop.name] = v
+                    if prop:
+                        if prop.rejected:
+                            _backuped[prop.name] = v
+                        else:
+                            properties[prop.alias or prop.name] = v
 
                 yield {
                     '_backup': _backuped,

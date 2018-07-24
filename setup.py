@@ -41,9 +41,7 @@ setup(
     packages=find_packages(where='.'),
     install_requires=[
         'geojson>=2.3.0,<2.4.0',
-        'neogeo_xml_utils==0.0.1',
         'numpy>=1.14.0,<1.15.0',
         'OWSLib>=0.16.0',
-        'requests>=2.13.0'],
-    dependency_links=[
-        'git+https://github.com/neogeo-technologies/neogeo-xml-utils.git@0.0.1#egg=neogeo_xml_utils-0.0.1'])
+        'requests>=2.13.0',
+        'xmltodict>=0.11,<0.12'])
