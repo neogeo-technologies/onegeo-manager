@@ -135,7 +135,7 @@ class Source(AbstractSource):
             if resource.name in l)[0]
 
         params = {
-            'cql': "type='{0}'".format(resource.name),
+            'cql': "Type='{0}'".format(resource.name),
             'esn': 'full',
             'format': 'application/xml',
             'maxrecords': step,
@@ -174,6 +174,12 @@ class Source(AbstractSource):
                                         v = v.__dict__
                                     d[k] = v
                                 contact.append(d)
+
+                    uris = []
+                    if rec.distribution and rec.distribution.online:
+                        for m in rec.distribution.online:
+                            if m.__class__.__name__ == 'CI_ResponsibleParty':
+                                uris.append(m.__dict__)
 
                     data.update(**{
                         'abstract': rec.identification.abstract,
@@ -219,9 +225,7 @@ class Source(AbstractSource):
                         'topic_category': rec.identification.topiccategory,
                         'use_constraints': rec.identification.useconstraints,
                         'use_limitation': rec.identification.uselimitation,
-                        'uris': rec.distribution.online and [
-                            m.__dict__ for m in rec.distribution.online
-                            if m.__class__.__name__ == 'CI_OnlineResource'],
+                        'uris': uris,
                         'xml': rec.xml.decode('utf-8')})
 
                 if rec.__class__.__name__ == 'CswRecord':
