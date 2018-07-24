@@ -220,7 +220,11 @@ class Source(AbstractSource):
                 for m in isinstance(sch_elts, list)
                 and sch_elts or [sch_elts]]):
 
-            resource = Resource(self, sch_elt[0])
+            try:
+                resource = Resource(self, sch_elt[0])
+            except ValueError:
+                # TODO log this
+                continue
 
             ct = None
             for cplx_type in iter(
