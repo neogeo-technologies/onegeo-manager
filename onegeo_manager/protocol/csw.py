@@ -283,7 +283,7 @@ class IndexProfile(AbstractIndexProfile):
 
                 xml = 'xml' in record and record.pop('xml') or None
                 uris = 'uris' in record and record.pop('uris') or None
-                geometry = 'bbox' in properties and properties.pop('bbox') or None
+                geometry = 'bbox' in record and record.pop('bbox') or None
 
                 yield {
                     '_backup': _backuped,
