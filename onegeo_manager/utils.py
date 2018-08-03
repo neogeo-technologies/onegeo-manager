@@ -143,3 +143,8 @@ def digest_object(obj, encoding='utf-8'):
         separators=(',', ':'), default=None, sort_keys=True)
 
     return hashlib.md5(io.getvalue().encode(encoding)).hexdigest()
+
+
+def digest_binary(file):
+    """Convert any binary to md5 hex digest."""
+    return hashlib.md5(file).hexdigest()
