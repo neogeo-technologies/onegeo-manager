@@ -26,14 +26,10 @@ from onegeo_manager.utils import digest_binary
 from pathlib import Path
 from PyPDF2 import PdfFileReader
 from PyPDF2.utils import PdfReadError
+import re
 
 
 __description__ = 'PDF Store'
-
-
-META_FIELD = (
-    'Author', 'CreationDate', 'Creator', 'Keywords',
-    'ModDate', 'Producer', 'Subject', 'Title')
 
 
 class Resource(AbstractResource):
@@ -44,23 +40,6 @@ class Resource(AbstractResource):
         super().__init__(source, name=self._p.name)
 
         self.title = self._p.name
-
-        self.add_column(
-            'attachment/author', column_type='text', occurs=(0, 1))
-        self.add_column(
-            'attachment/content', column_type='text', occurs=(1, 1))
-        self.add_column(
-            'attachment/content_length', column_type='long', occurs=(0, 1))
-        self.add_column(
-            'attachment/content_type', column_type='text', occurs=(0, 1))
-        self.add_column(
-            'attachment/date', column_type='date', occurs=(0, 1))
-        self.add_column(
-            'attachment/keywords', column_type='text', occurs=(0, 1))
-        self.add_column(
-            'attachment/language', column_type='text', occurs=(0, 1))
-        self.add_column(
-            'attachment/title', column_type='text', occurs=(0, 1))
 
     @property
     def uri(self):
@@ -89,9 +68,20 @@ class Resource(AbstractResource):
 
             properties = {}
             for k, v in info.items():
-                k = k[1:]
-                if k in META_FIELD:
-                    continue
+                k = k.startswith('/') and k[1:] or k
+
+                rule = dict(
+                    (c['name'], c) for c in self.columns)[k].pop('rule', None)
+                if rule:
+                    try:
+                        matched = re.match(rule, v)
+                    except Exception:
+                        pass
+                    else:
+                        if matched:
+                            for x in matched.groupdict().keys():
+                                properties[x] = matched.groupdict().get(x)
+
                 properties[k] = v
 
             yield {'raw': raw,
@@ -101,9 +91,6 @@ class Resource(AbstractResource):
 
 class Source(AbstractSource):
 
-    META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
-                  'ModDate', 'Producer', 'Subject', 'Title')
-
     def __init__(self, uri):
         self._p = Path(uri.startswith('file://') and uri[7:] or uri)
         if not self._p.exists():
@@ -111,51 +98,58 @@ class Source(AbstractSource):
         super().__init__(uri)
 
     def subdirectories(self):
-        subdirs = [sub for sub in self._p.iterdir() if sub.is_dir()]
-        if subdirs:
-            return subdirs
-        return [self._p]
+        return [sub for sub in self._p.iterdir() if sub.is_dir()] or [self._p]
 
-    def get_resources(self, *args, **kwargs):
-        names = kwargs.pop('names', None)
+    def get_resource(self, name, **kwargs):
+        force_columns = kwargs.pop('force_columns', {})
 
-        arr = []
-        for sub in self.subdirectories():
-            if names and sub.name not in names:
-                continue
+        sub = (self._p / name)
+        if not sub.exists():
+            raise ConnectionError('The asked resource does not exist.')
 
-            resource = Resource(self, uri=sub.as_uri())
+        resource = Resource(self, uri=sub.as_uri())
+
+        if force_columns:
+            for col in force_columns:
+                name = col.pop('name')
+                column_type = col.pop('type', None)
+                resource.add_column(
+                    name, column_type=column_type, **col)
+        else:
             columns = {}
-
-            for path in list(self._p.glob('**/*.[pP][dD][fF]')):
-                with open(path.as_posix(), 'rb') as f:
+            for p in list(sub.glob('**/*.[pP][dD][fF]')):
+                with open(p.as_posix(), 'rb') as f:
                     try:
                         info = PdfFileReader(f).getDocumentInfo()
                     except PdfReadError:
                         continue
+                    # else
+                    for k in info.keys():
+                        k = k.startswith('/') and k[1:] or k
+                        if k in columns:
+                            columns[k] += 1
+                        else:
+                            columns[k] = 1
 
-                for k in info.keys():
-                    k = k[1:]
-                    if k in META_FIELD:
-                        continue
-                    if k in columns:
-                        columns[k] += 1
-                    else:
-                        columns[k] = 1
-            for column, count in columns.items():
-                resource.add_column(column, count=count)
-            arr.append(resource)
+            for name, count in columns.items():
+                resource.add_column(name, count=count)
 
-        return arr
+        return resource
+
+    def get_resources(self, *args, **kwargs):
+        names = kwargs.pop('names', [s.name for s in self.subdirectories()])
+        force_columns = kwargs.pop('columns', {})
+
+        resources = []
+        for name in names:
+            resources.append(self.get_resource(name, force_columns=force_columns))
+        return resources
 
     def get_collection(self, *args, **kwargs):
         raise NotImplementedError()
 
 
 class IndexProfile(AbstractIndexProfile):
-
-    META_FIELD = ('Author', 'CreationDate', 'Creator', 'Keywords',
-                  'ModDate', 'Producer', 'Subject', 'Title')
 
     def __init__(self, name, resource):
         super().__init__(name, resource)
@@ -239,7 +233,6 @@ class IndexProfile(AbstractIndexProfile):
             elif p.name == 'attachment/title':
                 props['attachment']['properties']['title'] = fetch_mapping(p)
             elif not p.rejected:
-                print(p.name)
                 props[p.alias or p.name] = fetch_mapping(p)
 
         return clean_my_obj({

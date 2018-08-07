@@ -301,11 +301,10 @@ class AbstractIndexProfile(metaclass=ABCMeta):
         self._properties = []
         for c in self.resource.iter_columns():
             self._properties.append(PropertyColumn(
-                c['name'], column_type=c['type'],
-                count=c['count'], occurs=c['occurs'], rule=c['rule']))
+                c.get('name'), column_type=c.get('type'), count=c.get('count'),
+                occurs=c.get('occurs'), rule=c.get('rule')))
 
         self._tags = []
-        # self._preview = []
 
     @property
     def name(self):

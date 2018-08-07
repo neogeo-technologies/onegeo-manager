@@ -84,6 +84,15 @@ class AbstractResource(metaclass=ABCMeta):
         self._columns.append({'name': name, 'occurs': occurs, 'count': count,
                               'type': column_type, 'rule': rule})
 
+        if rule:
+            try:
+                for vcol in re.findall('\?\P\<(\w+)\>', rule):
+                    self._columns.append({
+                        'name': vcol, 'occurs': occurs, 'count': count,
+                        'type': column_type, 'rule': None})
+            except Exception:
+                pass
+
     def add_columns(self, columns):
         for column in columns:
             self.add_column(**column)
