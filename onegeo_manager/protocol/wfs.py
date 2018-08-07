@@ -205,7 +205,8 @@ class Source(AbstractSource):
                 return f
         raise ValueError('{0} not found.'.format(ft_name))
 
-    def get_resources(self, names=[]):
+    def get_resources(self, *args, **kwargs):
+        names = kwargs.pop('names', [])
 
         desc = self.__describe_feature_type(
             version=self.capabilities['@version'],

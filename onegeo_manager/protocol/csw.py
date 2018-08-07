@@ -45,7 +45,7 @@ class Resource(AbstractResource):
 
 class Source(AbstractSource):
 
-    OUTPUSCHEMA = {
+    OUTPUTSCHEMA = {
         'http://www.opengis.net/cat/csw/2.0.2': [
             'nonGeographicDataset', 'service'],
         'http://www.isotc211.org/2005/gmd': ['dataset', 'series']}
@@ -56,7 +56,9 @@ class Source(AbstractSource):
             csw.CatalogueServiceWeb(url, username=username, password=password)
         self.capabilities = self._csw.response
 
-    def get_resources(self, names=[]):
+    def get_resources(self, *args, **kwargs):
+        names = kwargs.pop('names', [])
+
         auth_names = ['dataset', 'nonGeographicDataset', 'series', 'service']
         if names and not any(map(lambda v: v in names, auth_names)):
             raise ValueError('Some given names are not found in this context.')
@@ -65,7 +67,7 @@ class Source(AbstractSource):
         for val in names or auth_names:
             resource = Resource(self, val)
 
-            if val in self.OUTPUSCHEMA['http://www.isotc211.org/2005/gmd']:
+            if val in self.OUTPUTSCHEMA['http://www.isotc211.org/2005/gmd']:
                 # -> MD_Metadata
                 columns = (
                     ('abstract', 'text'),
@@ -93,7 +95,7 @@ class Source(AbstractSource):
                     ('use_limitation', 'text'),
                     ('xml', 'text'))
 
-            if val in self.OUTPUSCHEMA['http://www.opengis.net/cat/csw/2.0.2']:
+            if val in self.OUTPUTSCHEMA['http://www.opengis.net/cat/csw/2.0.2']:
                 # -> CswRecord
                 columns = (
                     ('abstract', 'text'),  # dc
@@ -131,7 +133,7 @@ class Source(AbstractSource):
 
         outputschema = tuple(
             tuple(k for v in l if v == resource.name)[0]
-            for k, l in self.OUTPUSCHEMA.items()
+            for k, l in self.OUTPUTSCHEMA.items()
             if resource.name in l)[0]
 
         params = {
