@@ -145,8 +145,8 @@ class PropertyColumn(object):
 
     COLUMN_TYPE = ['binary', 'boolean', 'byte', 'date', 'date_range',
                    'double', 'double_range', 'float', 'float_range',
-                   'geo_shape', 'half_float', 'integer', 'integer_range', 'ip',
-                   'keyword', 'long', 'long_range', 'pdf', 'scaled_float',
+                   'geo_shape', 'half_float', 'integer', 'integer_range',
+                   'ip', 'keyword', 'long', 'long_range', 'scaled_float',
                    'short', 'text', 'object']
 
     def __init__(self, name, alias=None, column_type=None, occurs=None,

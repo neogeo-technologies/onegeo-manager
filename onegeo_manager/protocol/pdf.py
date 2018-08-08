@@ -133,6 +133,7 @@ class Source(AbstractSource):
 
             for name, count in columns.items():
                 resource.add_column(name, count=count)
+            resource.add_column('Content', column_type='text', occurs=(1, 1))
 
         return resource
 
@@ -192,12 +193,11 @@ class IndexProfile(AbstractIndexProfile):
 
     def generate_elastic_mapping(self):
 
-        props = {'attachment': {'properties': {}}}
+        properties = {}
+        attachment_properties = {}
         for p in self.iter_properties():
-            if p.name == 'attachment/author':
-                props['attachment']['properties']['author'] = fetch_mapping(p)
-            elif p.name == 'attachment/content':
-                props['attachment']['properties']['content'] = {
+            if p.name == 'Content':
+                attachment_properties['content'] = {
                     'analyzer': p.analyzer,
                     'boost': p.weight,
                     # 'eager_global_ordinals'
@@ -218,26 +218,14 @@ class IndexProfile(AbstractIndexProfile):
                     'similarity': 'classic',
                     'term_vector': 'yes',
                     'type': 'text'}
-            elif p.name == 'attachment/content_length':
-                props['attachment']['properties']['content_length'] = fetch_mapping(p)
-            elif p.name == 'attachment/content_type':
-                props['attachment']['properties']['content_type'] = fetch_mapping(p)
-            elif p.name == 'attachment/date':
-                props['attachment']['properties']['date'] = fetch_mapping(p)
-            elif p.name == 'attachment/keywords':
-                props['attachment']['properties']['keywords'] = fetch_mapping(p)
-            elif p.name == 'attachment/author':
-                props['attachment']['properties']['content_length'] = fetch_mapping(p)
-            elif p.name == 'attachment/language':
-                props['attachment']['properties']['language'] = fetch_mapping(p)
-            elif p.name == 'attachment/title':
-                props['attachment']['properties']['title'] = fetch_mapping(p)
             elif not p.rejected:
-                props[p.alias or p.name] = fetch_mapping(p)
+                properties[p.alias or p.name] = fetch_mapping(p)
 
         return clean_my_obj({
             self.name: {
                 'properties': {
+                    'attachment': {
+                        'properties': attachment_properties},
                     'lineage': {
                         'properties': {
                             'filename': not_searchable('keyword'),
@@ -248,4 +236,5 @@ class IndexProfile(AbstractIndexProfile):
                                 'properties': {
                                     'protocol': not_searchable('keyword'),
                                     'uri': not_searchable('keyword')}}}},
-                    'properties': {'properties': props}}}})
+                    'properties': {
+                        'properties': properties}}}})
