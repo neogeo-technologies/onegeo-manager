@@ -253,6 +253,16 @@ class PropertyColumn(object):
         self._pattern = val
 
     @property
+    def rule(self):
+        return self._rule
+
+    @rule.setter
+    def rule(self, val):
+        if val == '':
+            val = None
+        self._rule = val
+
+    @property
     def analyzer(self):
         return self._analyzer
 
@@ -284,6 +294,7 @@ class PropertyColumn(object):
                 'weight': self._weight,
                 'pattern': self._pattern,
                 'analyzer': self._analyzer,
+                'rule': self._rule,
                 'search_analyzer': self._search_analyzer,
                 'suggest': self._suggest}
 
