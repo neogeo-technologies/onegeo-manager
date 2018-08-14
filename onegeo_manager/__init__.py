@@ -14,7 +14,7 @@
 # under the License.
 
 
-__version__ = '0.1a1.dev0'
+__version__ = '0.2.0dev'
 
 
 import itertools
