@@ -43,5 +43,6 @@ setup(
         'geojson>=2.3.0,<2.4.0',
         'numpy>=1.14.0,<1.15.0',
         'OWSLib>=0.16.0',
+        'PyPDF2>=1.26.0',
         'requests>=2.13.0',
         'xmltodict>=0.11,<0.12'])
