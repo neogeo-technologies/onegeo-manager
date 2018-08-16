@@ -16,9 +16,10 @@
 
 from base64 import b64encode
 from functools import wraps
+import gc
 from onegeo_manager.index_profile import AbstractIndexProfile
 from onegeo_manager.index_profile import fetch_mapping
-from onegeo_manager.index_profile import not_searchable
+# from onegeo_manager.index_profile import not_searchable
 from onegeo_manager.resource import AbstractResource
 from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import clean_my_obj
@@ -56,20 +57,27 @@ class Resource(AbstractResource):
     def get_collection(self):
 
         for path in list(self._p.glob('**/*.[pP][dD][fF]')):
+
             filename = '/'.join(path.parts[len(self._p.parts):])
+            doc = {
+                'raw': None,
+                'filename': filename,
+                'properties': {}}
+
+            gc.collect(generation=2)
+
+            info = {}
             with open(path.as_posix(), 'rb') as f:
                 try:
                     info = PdfFileReader(f).getDocumentInfo()
-                except PdfReadError:
-                    info = {}
+                except Exception:
+                    pass
 
             with open(path.as_posix(), 'rb') as f:
-                raw = b64encode(f.read()).decode('utf-8')
+                doc['raw'] = b64encode(f.read()).decode('utf-8')
 
-            properties = {}
             for k, v in info.items():
                 k = k.startswith('/') and k[1:] or k
-
                 rule = dict(
                     (c['name'], c) for c in self.columns)[k].pop('rule', None)
                 if rule:
@@ -80,13 +88,9 @@ class Resource(AbstractResource):
                     else:
                         if matched:
                             for x in matched.groupdict().keys():
-                                properties[x] = matched.groupdict().get(x)
-
-                properties[k] = v
-
-            yield {'raw': raw,
-                   'filename': filename,
-                   'properties': properties}
+                                doc['properties'][x] = matched.groupdict().get(x)
+                doc['properties'][k] = v
+            yield doc
 
 
 class Source(AbstractSource):
@@ -228,13 +232,13 @@ class IndexProfile(AbstractIndexProfile):
                         'properties': attachment_properties},
                     'lineage': {
                         'properties': {
-                            'filename': not_searchable('keyword'),
+                            'filename': {'type': 'keyword'},
                             'resource': {
                                 'properties': {
-                                    'name': not_searchable('keyword')}},
+                                    'name': {'type': 'keyword'}}},
                             'source': {
                                 'properties': {
-                                    'protocol': not_searchable('keyword'),
-                                    'uri': not_searchable('keyword')}}}},
+                                    'protocol': {'type': 'keyword'},
+                                    'uri': {'type': 'keyword'}}}}},
                     'properties': {
                         'properties': properties}}}})
