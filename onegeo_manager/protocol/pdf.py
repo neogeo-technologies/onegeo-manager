@@ -79,7 +79,7 @@ class Resource(AbstractResource):
             for k, v in info.items():
                 k = k.startswith('/') and k[1:] or k
                 rule = dict(
-                    (c['name'], c) for c in self.columns)[k].pop('rule', None)
+                    (c['name'], c) for c in self.columns)[k].get('rule')
                 if rule:
                     try:
                         matched = re.match(rule, v)
@@ -89,7 +89,8 @@ class Resource(AbstractResource):
                         if matched:
                             for x in matched.groupdict().keys():
                                 doc['properties'][x] = matched.groupdict().get(x)
-                doc['properties'][k] = v
+                else:
+                    doc['properties'][k] = v
             yield doc
 
 
