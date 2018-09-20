@@ -25,8 +25,7 @@ from onegeo_manager.source import AbstractSource
 from onegeo_manager.utils import clean_my_obj
 from onegeo_manager.utils import digest_binary
 from pathlib import Path
-from PyPDF2 import PdfFileReader
-from PyPDF2.utils import PdfReadError
+import PyPDF2
 import re
 
 
@@ -69,7 +68,7 @@ class Resource(AbstractResource):
             info = {}
             with open(path.as_posix(), 'rb') as f:
                 try:
-                    info = PdfFileReader(f).getDocumentInfo()
+                    info = PyPDF2.PdfFileReader(f).getDocumentInfo()
                 except Exception:
                     pass
 
@@ -78,6 +77,10 @@ class Resource(AbstractResource):
 
             for k, v in info.items():
                 k = k.startswith('/') and k[1:] or k
+                if isinstance(v, PyPDF2.generic.IndirectObject):
+                    continue
+                if isinstance(v, PyPDF2.generic.BooleanObject):
+                    v = v.value
                 rule = dict(
                     (c['name'], c) for c in self.columns)[k].get('rule')
                 if rule:
@@ -125,8 +128,8 @@ class Source(AbstractSource):
             for p in list(sub.glob('**/*.[pP][dD][fF]')):
                 with open(p.as_posix(), 'rb') as f:
                     try:
-                        info = PdfFileReader(f).getDocumentInfo()
-                    except PdfReadError:
+                        info = PyPDF2.PdfFileReader(f).getDocumentInfo()
+                    except PyPDF2.utils.PdfReadError:
                         continue
                     # else
                     for k in info.keys():
