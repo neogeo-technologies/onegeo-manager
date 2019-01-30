@@ -15,6 +15,7 @@
 
 
 from functools import wraps
+from onegeo_manager.exception import DuplicateColumnError
 from onegeo_manager.exception import NotYetImplemented
 from onegeo_manager.exception import OGCExceptionReport
 from onegeo_manager.exception import UnexpectedError
@@ -244,7 +245,10 @@ class Source(AbstractSource):
                 t = '@type' in e and str(e['@type']).split(':')[-1] or None
                 o = ('@minOccurs' in e and int(e['@minOccurs']) or 0,
                      '@maxOccurs' in e and int(e['@maxOccurs']) or 1)
-                resource.add_column(n, column_type=t, occurs=o)
+                try:
+                    resource.add_column(n, column_type=t, occurs=o)
+                except DuplicateColumnError:
+                    pass
 
             resources.append(resource)
         return resources

@@ -46,3 +46,8 @@ class ProtocolNotFoundError(GenericException):
 class NotYetImplemented(GenericException):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class DuplicateColumnError(GenericException):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

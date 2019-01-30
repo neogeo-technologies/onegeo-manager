@@ -16,6 +16,7 @@
 
 from abc import ABCMeta
 from importlib import import_module
+from onegeo_manager.exception import DuplicateColumnError
 from onegeo_manager.exception import ProtocolNotFoundError
 import re
 
@@ -71,7 +72,7 @@ class AbstractResource(metaclass=ABCMeta):
                    occurs=(0, 1), count=None, rule=None):
 
         if self.is_existing_column(name):
-            raise Exception(
+            raise DuplicateColumnError(
                 "Column '{0}' already exists.".format(name))
 
         if column_type and not self.authorized_column_type(column_type):
