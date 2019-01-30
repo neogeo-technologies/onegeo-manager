@@ -15,11 +15,17 @@
 
 
 from onegeo_manager import __version__
+from pip._internal.req import parse_requirements
 from setuptools import find_packages
 from setuptools import setup
 
 
 version = str(__version__)
+
+
+install_reqs = parse_requirements('./requirements.txt', session=False)
+reqs = [str(ir.req) for ir in install_reqs]
+
 
 setup(
     name='onegeo-manager',
@@ -39,10 +45,5 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'],
     packages=find_packages(where='.'),
-    install_requires=[
-        'geojson>=2.3.0,<2.4.0',
-        'numpy>=1.14.0,<1.15.0',
-        'OWSLib>=0.16.0',
-        'PyPDF2>=1.26.0',
-        'requests>=2.13.0',
-        'xmltodict>=0.11,<0.12'])
+    install_requires=reqs,
+    )
